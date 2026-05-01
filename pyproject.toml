@@ -8,10 +8,11 @@ dependencies = [
     "pydantic>=2.13.3",
 ]
 
-[tool.ruff.lint]
-ignore = ["F401"]
-
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
+    "ruff>=0.15.12",
 ]
+
+[tool.ruff.lint]
+ignore = ["F401"]
