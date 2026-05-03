@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from app.storage.in_memory import inventory, orders
 
 
@@ -60,4 +62,7 @@ def get_order(order_id):
 
 
 def generate_order_id():
-    return "order_" + str(len(orders) + 1)
+    while True:
+        order_id = f"ord_{uuid4().hex[:8]}"
+        if order_id not in orders:
+            return order_id
