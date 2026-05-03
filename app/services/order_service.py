@@ -1,15 +1,12 @@
 from app.storage.in_memory import inventory, orders
 
 
-def create_order(order_id):
+def create_order(order_id, customer_id, items, currency):
     orders[order_id] = {
         "order_id": order_id,
-        "customer_id": "customer_123",
-        "items": [
-            {"sku": "SKU-001", "quantity": 2},
-            {"sku": "SKU-002", "quantity": 1},
-        ],
-        "currency": "EUR",
+        "customer_id": customer_id,
+        "items": items,
+        "currency": currency,
         "status": "PENDING",
         "steps": {
             "inventory": "PENDING",
@@ -60,3 +57,7 @@ def get_all_orders():
 
 def get_order(order_id):
     return orders.get(order_id, None)
+
+
+def generate_order_id():
+    return "order_" + str(len(orders) + 1)
