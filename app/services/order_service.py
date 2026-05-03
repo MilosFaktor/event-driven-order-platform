@@ -22,35 +22,37 @@ def create_order(idempotency_key, order_id, customer_id, items, currency):
 
 
 def process_order(order_id):
-    orders[order_id]["status"] = "PROCESSING"
-    for item in orders[order_id]["items"]:
-        sku = item["sku"]
-        quantity = item["quantity"]
-        if inventory[sku]["stock"] >= quantity:
-            inventory[sku]["stock"] -= quantity
-            print(f"Reserved {quantity} x {inventory[sku]['name']}")
-            orders[order_id]["steps"]["inventory"] = "RESERVED"
-        else:
-            orders[order_id]["status"] = "FAILED"
-            orders[order_id]["failure_reason"] = (
-                f"Insufficient stock for {inventory[sku]['name']}"
-            )
-            print(orders[order_id]["failure_reason"])
-            orders[order_id]["steps"]["inventory"] = "FAILED"
-            break
+    if orders[order_id]["status"] != "COMPLETED":
+        orders[order_id]["status"] = "PROCESSING"
+        for item in orders[order_id]["items"]:
+            sku = item["sku"]
+            quantity = item["quantity"]
+            if inventory[sku]["stock"] >= quantity:
+                inventory[sku]["stock"] -= quantity
+                print(f"Reserved {quantity} x {inventory[sku]['name']}")
+                orders[order_id]["steps"]["inventory"] = "RESERVED"
+            else:
+                orders[order_id]["status"] = "FAILED"
+                orders[order_id]["failure_reason"] = (
+                    f"Insufficient stock for {inventory[sku]['name']}"
+                )
+                print(orders[order_id]["failure_reason"])
+                orders[order_id]["steps"]["inventory"] = "FAILED"
+                break
 
-    if orders[order_id]["status"] != "FAILED":
-        # payment mock
-        orders[order_id]["steps"]["payment"] = "CAPTURED"
+        if orders[order_id]["status"] != "FAILED":
+            # payment mock
+            orders[order_id]["steps"]["payment"] = "CAPTURED"
 
-        # invoice mock
-        orders[order_id]["steps"]["invoice"] = "CREATED"
+            # invoice mock
+            orders[order_id]["steps"]["invoice"] = "CREATED"
 
-        # notification mock
-        orders[order_id]["steps"]["notification"] = "SENT"
+            # notification mock
+            orders[order_id]["steps"]["notification"] = "SENT"
 
-        orders[order_id]["status"] = "COMPLETED"
+            orders[order_id]["status"] = "COMPLETED"
 
+        return orders[order_id]
     return orders[order_id]
 
 
