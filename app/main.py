@@ -10,6 +10,7 @@ from app.services.order_service import (
     get_order,
     get_order_id_by_idempotency_key,
 )
+from app.services.queue_service import enqueue_order, get_processing_queue
 
 app = FastAPI()
 
@@ -49,6 +50,7 @@ def create_new_order(
         items=[item.model_dump() for item in request.items],
         currency=request.currency,
     )
+    enqueue_order(order_id)
 
     return {"order_id": order_id, "status": "PENDING"}
 
@@ -74,3 +76,8 @@ def read_idempotency_keys():
 @app.get("/v1/debug/inventory")
 def read_inventory():
     return get_inventory()
+
+
+@app.get("/v1/debug/processing-queue")
+def read_processing_queue():
+    return get_processing_queue()

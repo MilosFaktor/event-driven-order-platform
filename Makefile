@@ -1,4 +1,4 @@
-.PHONY: check format lint run api api-create-order-1 api-create-order-2 api-get-orders api-get-idem-keys api-get-inventory
+.PHONY: check format lint run api api-create-order-1 api-create-order-2 api-get-orders api-get-idem-keys api-get-inventory run-worker api-get-queue
 
 check:
 	uv run ruff check .
@@ -12,6 +12,10 @@ lint:
 
 run:
 	uv run python app/main.py
+
+run-worker:
+	uv run python -m app.services.worker_service
+
 
 api:
 	uv run uvicorn app.main:app --reload
@@ -37,3 +41,5 @@ api-get-inventory:
 api-get-orders:
 	curl http://127.0.0.1:8000/v1/orders | jq
 
+api-get-queue:
+	curl http://127.0.0.1:8000/v1/debug/processing-queue | jq
