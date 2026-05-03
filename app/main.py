@@ -11,6 +11,7 @@ from app.services.order_service import (
     get_order_id_by_idempotency_key,
 )
 from app.services.queue_service import enqueue_order, get_processing_queue
+from app.services.worker_service import process_next_order
 
 app = FastAPI()
 
@@ -18,6 +19,9 @@ app = FastAPI()
 @app.get("/")
 def read_root():
     return {"message": "root"}
+
+
+# ======= orders section ========
 
 
 @app.post("/v1/orders", status_code=201)
@@ -66,6 +70,20 @@ def read_order(order_id: str):
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
+
+
+# ========= worker section =========
+
+
+@app.post("/v1/worker/process-next-order")
+def worker_process_next_order():
+    result = process_next_order()
+    if result is None:
+        raise HTTPException(status_code=200, detail="No orders to process")
+    return result
+
+
+# ======== debug section ========
 
 
 @app.get("/v1/debug/idempotency-keys")

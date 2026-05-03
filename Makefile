@@ -1,4 +1,6 @@
-.PHONY: check format lint run api api-create-order-1 api-create-order-2 api-get-orders api-get-idem-keys api-get-inventory run-worker api-get-queue
+.PHONY: check format lint run api api-create-order-1 api-create-order-2 \
+	api-get-orders api-get-idem-keys api-get-inventory run-worker api-get-queue \
+	worker-process-next
 
 check:
 	uv run ruff check .
@@ -43,3 +45,6 @@ api-get-orders:
 
 api-get-queue:
 	curl http://127.0.0.1:8000/v1/debug/processing-queue | jq
+
+worker-process-next:
+	curl -X POST http://127.0.0.1:8000/v1/worker/process-next-order
