@@ -1,9 +1,10 @@
 from uuid import uuid4
 
-from app.storage.in_memory import inventory, orders
+from app.storage.in_memory import idempotency_keys, inventory, orders
 
 
-def create_order(order_id, customer_id, items, currency):
+def create_order(idempotency_key, order_id, customer_id, items, currency):
+    idempotency_keys[idempotency_key] = order_id
     orders[order_id] = {
         "order_id": order_id,
         "customer_id": customer_id,
@@ -66,3 +67,15 @@ def generate_order_id():
         order_id = f"ord_{uuid4().hex[:8]}"
         if order_id not in orders:
             return order_id
+
+
+def get_order_id_by_idempotency_key(idempotency_key):
+    return idempotency_keys.get(idempotency_key)
+
+
+def get_idempotency_keys():
+    return idempotency_keys
+
+
+def get_inventory():
+    return inventory
