@@ -1,4 +1,4 @@
-from storage.in_memory import inventory, orders
+from app.storage.in_memory import inventory, orders
 
 
 def create_order(order_id):
@@ -50,3 +50,13 @@ def process_order(order_id):
         orders[order_id]["steps"]["notification"] = "SENT"
 
         orders[order_id]["status"] = "COMPLETED"
+
+    return orders[order_id]
+
+
+def get_all_orders():
+    return list(orders.values())
+
+
+def get_order(order_id):
+    return orders.get(order_id, None)
