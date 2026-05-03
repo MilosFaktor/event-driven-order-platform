@@ -6,3 +6,5 @@ inventory = {
 }
 
 idempotency_keys = {}
+
+processing_queue = []
