@@ -1,0 +1,14 @@
+{
+    "customer_id": "cust_123",
+    "items": [
+        {
+            "sku": "SKU-001",
+            "quantity": 5
+        },
+        {
+            "sku": "SKU-002",
+            "quantity": 8
+        }
+    ],
+    "currency": "EUR"
+}

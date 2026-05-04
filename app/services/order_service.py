@@ -5,7 +5,9 @@ from app.services.inventory_service import (
     release_order_inventory,
     reserve_inventory,
 )
-from app.storage.in_memory import idempotency_keys, inventory, orders
+from app.services.invoice_service import create_invoice
+from app.services.notification_service import send_notification
+from app.storage.in_memory import idempotency_keys, orders
 
 
 def order_is_completed(order):
@@ -28,7 +30,7 @@ def mark_order_failed(order):
     order["status"] = "FAILED"
 
 
-# ============== payment_service.py =================
+# ============== future payment_service.py =================
 
 
 def payment_captured_mock(order):
@@ -39,24 +41,6 @@ def payment_captured_mock(order):
 
 def is_payment_captured(order):
     return order["steps"]["payment"] == "CAPTURED"
-
-
-# ============= invoice_service.py =================
-
-
-def invoice_created_mock(order):
-    # invoice mock
-    print("Invoice created successfully")
-    order["steps"]["invoice"] = "CREATED"
-
-
-# =============== notification_service.py ===============
-
-
-def notification_sent_mock(order):
-    # notification mock
-    print("Notification sent successfully")
-    order["steps"]["notification"] = "SENT"
 
 
 # ==================================================
@@ -104,13 +88,11 @@ def process_order(order_id):
     if order_failed(order):
         return order
 
-    invoice_created_mock(
-        order
-    )  # what happens if invoice hasn't been created / solution retry logic
+    create_invoice(order)
+    # what happens if invoice hasn't been created / solution retry logic
 
-    notification_sent_mock(
-        order
-    )  # what happens if notification hasn't been sent / solution retry logic
+    send_notification(order)
+    # what happens if notification hasn't been sent / solution retry logic
 
     mark_order_completed(order)
 

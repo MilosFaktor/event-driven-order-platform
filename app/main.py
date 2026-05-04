@@ -2,6 +2,8 @@ from fastapi import FastAPI, Header, HTTPException, Response
 
 from app.models.orders import CreateOrderRequest
 from app.services.inventory_service import get_inventory
+from app.services.invoice_service import get_invoices
+from app.services.notification_service import get_notifications
 from app.services.order_service import (
     create_order,
     generate_order_id,
@@ -99,3 +101,13 @@ def read_inventory():
 @app.get("/v1/debug/processing-queue")
 def read_processing_queue():
     return get_processing_queue()
+
+
+@app.get("/v1/debug/invoices")
+def read_invoices():
+    return get_invoices()
+
+
+@app.get("/v1/debug/notifications")
+def read_notifications():
+    return get_notifications()
