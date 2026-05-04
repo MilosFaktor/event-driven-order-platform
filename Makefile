@@ -1,6 +1,6 @@
 .PHONY: check format lint run api api-create-order-1 api-create-order-2 \
 	api-get-orders api-get-idem-keys api-get-inventory run-worker api-get-queue \
-	worker-process-next
+	worker-process-next run-sandbox
 
 check:
 	uv run ruff check .
@@ -13,7 +13,10 @@ lint:
 	uv run ruff format .
 
 run:
-	uv run python app/main.py
+	uv run python -m app.main
+
+run-sandbox:
+	uv run python -m app.sandbox
 
 run-worker:
 	uv run python -m app.services.worker_service

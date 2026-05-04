@@ -27,8 +27,8 @@ def process_order(order_id):
         for item in orders[order_id]["items"]:
             sku = item["sku"]
             quantity = item["quantity"]
-            if inventory[sku]["stock"] >= quantity:
-                inventory[sku]["stock"] -= quantity
+            if inventory[sku]["available_stock"] >= quantity:
+                inventory[sku]["available_stock"] -= quantity
                 print(f"Reserved {quantity} x {inventory[sku]['name']}")
                 orders[order_id]["steps"]["inventory"] = "RESERVED"
             else:
