@@ -1,3 +1,10 @@
+"""
+Experimental order pipeline sandbox.
+
+This file is for exploring workflow logic before moving it into app/services.
+The production app should not import from this file.
+"""
+
 import json
 
 orders = {}

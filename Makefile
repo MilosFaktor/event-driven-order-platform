@@ -16,7 +16,7 @@ run:
 	uv run python -m app.main
 
 run-sandbox:
-	uv run python -m app.sandbox
+	uv run python -m experiments.order_pipeline_sandbox
 
 run-worker:
 	uv run python -m app.services.worker_service
