@@ -1,6 +1,49 @@
 from uuid import uuid4
 
-from app.storage.in_memory import idempotency_keys, inventory, orders
+from app.services.inventory_service import (
+    finalize_inventory_sale,
+    release_order_inventory,
+    reserve_inventory,
+)
+from app.services.invoice_service import create_invoice
+from app.services.notification_service import send_notification
+from app.storage.in_memory import idempotency_keys, orders
+
+
+def order_is_completed(order):
+    return order["status"] == "COMPLETED"
+
+
+def mark_order_processing(order):
+    order["status"] = "PROCESSING"
+
+
+def mark_order_completed(order):
+    order["status"] = "COMPLETED"
+
+
+def order_failed(order):
+    return order["status"] == "FAILED"
+
+
+def mark_order_failed(order):
+    order["status"] = "FAILED"
+
+
+# ============== future payment_service.py =================
+
+
+def payment_captured_mock(order):
+    # payment mock
+    print("Payment captured successfully")
+    order["steps"]["payment"] = "CAPTURED"
+
+
+def is_payment_captured(order):
+    return order["steps"]["payment"] == "CAPTURED"
+
+
+# ==================================================
 
 
 def create_order(idempotency_key, order_id, customer_id, items, currency):
@@ -22,38 +65,38 @@ def create_order(idempotency_key, order_id, customer_id, items, currency):
 
 
 def process_order(order_id):
-    if orders[order_id]["status"] != "COMPLETED":
-        orders[order_id]["status"] = "PROCESSING"
-        for item in orders[order_id]["items"]:
-            sku = item["sku"]
-            quantity = item["quantity"]
-            if inventory[sku]["stock"] >= quantity:
-                inventory[sku]["stock"] -= quantity
-                print(f"Reserved {quantity} x {inventory[sku]['name']}")
-                orders[order_id]["steps"]["inventory"] = "RESERVED"
-            else:
-                orders[order_id]["status"] = "FAILED"
-                orders[order_id]["failure_reason"] = (
-                    f"Insufficient stock for {inventory[sku]['name']}"
-                )
-                print(orders[order_id]["failure_reason"])
-                orders[order_id]["steps"]["inventory"] = "FAILED"
-                break
+    order = orders[order_id]
 
-        if orders[order_id]["status"] != "FAILED":
-            # payment mock
-            orders[order_id]["steps"]["payment"] = "CAPTURED"
+    if order_is_completed(order):
+        return order
 
-            # invoice mock
-            orders[order_id]["steps"]["invoice"] = "CREATED"
+    mark_order_processing(order)
+    reserve_inventory(order)
 
-            # notification mock
-            orders[order_id]["steps"]["notification"] = "SENT"
+    if order_failed(order):
+        return order
 
-            orders[order_id]["status"] = "COMPLETED"
+    payment_captured_mock(order)
 
-        return orders[order_id]
-    return orders[order_id]
+    if is_payment_captured(order):
+        finalize_inventory_sale(order)
+    else:
+        mark_order_failed(order)
+        release_order_inventory(order)
+        return order
+
+    if order_failed(order):
+        return order
+
+    create_invoice(order)
+    # what happens if invoice hasn't been created / solution retry logic
+
+    send_notification(order)
+    # what happens if notification hasn't been sent / solution retry logic
+
+    mark_order_completed(order)
+
+    return order
 
 
 def get_all_orders():
@@ -77,7 +120,3 @@ def get_order_id_by_idempotency_key(idempotency_key):
 
 def get_idempotency_keys():
     return idempotency_keys
-
-
-def get_inventory():
-    return inventory
