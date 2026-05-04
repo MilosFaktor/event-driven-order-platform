@@ -104,10 +104,6 @@ def release_order_inventory(order):
         release_reserved_inventory(sku, quantity)
 
 
-def mark_order_failed(order):
-    order["status"] = "FAILED"
-
-
 # ============== payment_service.py =================
 
 
@@ -156,6 +152,10 @@ def mark_order_completed(order):
 
 def order_failed(order):
     return order["status"] == "FAILED"
+
+
+def mark_order_failed(order):
+    order["status"] = "FAILED"
 
 
 # ============================================

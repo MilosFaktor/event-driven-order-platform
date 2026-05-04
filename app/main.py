@@ -1,12 +1,12 @@
 from fastapi import FastAPI, Header, HTTPException, Response
 
 from app.models.orders import CreateOrderRequest
+from app.services.inventory_service import get_inventory
 from app.services.order_service import (
     create_order,
     generate_order_id,
     get_all_orders,
     get_idempotency_keys,
-    get_inventory,
     get_order,
     get_order_id_by_idempotency_key,
 )
