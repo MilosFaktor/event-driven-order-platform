@@ -46,6 +46,9 @@ def create_order_sand():
     return orders[order_id]
 
 
+# ========== inventory_service.py ===========
+
+
 def has_available_stock(sku, quantity):
     return inventory[sku]["available_stock"] >= quantity
 
@@ -77,28 +80,6 @@ def reserve_inventory(order):
             # solution: checks can be done in the future before placing item into cart
 
 
-def payment_captured_mock(order):
-    # payment mock
-    print("Payment captured successfully")
-    order["steps"]["payment"] = "CAPTURED"
-
-
-def invoice_created_mock(order):
-    # invoice mock
-    print("Invoice created successfully")
-    order["steps"]["invoice"] = "CREATED"
-
-
-def notification_sent_mock(order):
-    # notification mock
-    print("Notification sent successfully")
-    order["steps"]["notification"] = "SENT"
-
-
-def is_payment_captured(order):
-    return order["steps"]["payment"] == "CAPTURED"
-
-
 def release_reserved_inventory(sku, quantity):
     inventory[sku]["reserved_stock"] -= quantity
     inventory[sku]["available_stock"] += quantity
@@ -110,16 +91,55 @@ def mark_inventory_as_sold(sku, quantity):
 
 
 def finalize_inventory_sale(order):
-
     for item in order["items"]:
         sku = item["sku"]
         quantity = item["quantity"]
+        mark_inventory_as_sold(sku, quantity)
 
-        if is_payment_captured(order):
-            mark_inventory_as_sold(sku, quantity)
-        else:
-            order["status"] = "FAILED"
-            release_reserved_inventory(sku, quantity)
+
+def release_order_inventory(order):
+    for item in order["items"]:
+        sku = item["sku"]
+        quantity = item["quantity"]
+        release_reserved_inventory(sku, quantity)
+
+
+def mark_order_failed(order):
+    order["status"] = "FAILED"
+
+
+# ============== payment_service.py =================
+
+
+def payment_captured_mock(order):
+    # payment mock
+    print("Payment captured successfully")
+    order["steps"]["payment"] = "CAPTURED"
+
+
+def is_payment_captured(order):
+    return order["steps"]["payment"] == "CAPTURED"
+
+
+# ============= invoice_service.py =================
+
+
+def invoice_created_mock(order):
+    # invoice mock
+    print("Invoice created successfully")
+    order["steps"]["invoice"] = "CREATED"
+
+
+# =============== notification_service.py ===============
+
+
+def notification_sent_mock(order):
+    # notification mock
+    print("Notification sent successfully")
+    order["steps"]["notification"] = "SENT"
+
+
+# ============= order_service.py ===============
 
 
 def order_is_completed(order):
@@ -138,6 +158,9 @@ def order_failed(order):
     return order["status"] == "FAILED"
 
 
+# ============================================
+
+
 def process_order_sand(order_id):
     order = orders[order_id]
 
@@ -151,18 +174,24 @@ def process_order_sand(order_id):
         return order
 
     payment_captured_mock(order)
-    finalize_inventory_sale(order)
+
+    if is_payment_captured(order):
+        finalize_inventory_sale(order)
+    else:
+        mark_order_failed(order)
+        release_order_inventory(order)
+        return order
 
     if order_failed(order):
         return order
 
     invoice_created_mock(
         order
-    )  # what happends if invoice hasn't been created / solution retry logic
+    )  # what happens if invoice hasn't been created / solution retry logic
 
     notification_sent_mock(
         order
-    )  # what happends if notification hasn't been sent / solution retry logic
+    )  # what happens if notification hasn't been sent / solution retry logic
 
     mark_order_completed(order)
 
