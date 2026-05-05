@@ -1,1 +1,48 @@
-{}
+{
+  "inv_ord_050df6b1": {
+    "invoice_id": "inv_ord_050df6b1",
+    "order_id": "ord_050df6b1",
+    "customer_id": "cust_123",
+    "items": [
+      {
+        "sku": "SKU-001",
+        "name": "Laptop",
+        "quantity": 2,
+        "unit_price": 950.5,
+        "line_total": 1901.0
+      },
+      {
+        "sku": "SKU-002",
+        "name": "Mouse",
+        "quantity": 1,
+        "unit_price": 30,
+        "line_total": 30
+      }
+    ],
+    "currency": "EUR",
+    "status": "CREATED"
+  },
+  "inv_ord_97fb4179": {
+    "invoice_id": "inv_ord_97fb4179",
+    "order_id": "ord_97fb4179",
+    "customer_id": "cust_123",
+    "items": [
+      {
+        "sku": "SKU-001",
+        "name": "Laptop",
+        "quantity": 5,
+        "unit_price": 950.5,
+        "line_total": 4752.5
+      },
+      {
+        "sku": "SKU-002",
+        "name": "Mouse",
+        "quantity": 8,
+        "unit_price": 30,
+        "line_total": 240
+      }
+    ],
+    "currency": "EUR",
+    "status": "CREATED"
+  }
+}

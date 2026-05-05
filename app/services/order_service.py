@@ -29,6 +29,22 @@ def mark_order_status(order, status):
     save_orders(orders)
 
 
+def mark_invoice_created(order):
+    order["steps"]["invoice"] = "CREATED"
+    print("Invoice created successfully")
+    orders = get_orders()
+    orders[order["order_id"]] = order
+    save_orders(orders)
+
+
+def mark_notification_sent(order):
+    order["steps"]["notification"] = "SENT"
+    print("Notification sent successfully")
+    orders = get_orders()
+    orders[order["order_id"]] = order
+    save_orders(orders)
+
+
 # ============== future payment_service.py =================
 
 
@@ -95,9 +111,11 @@ def process_order(order_id):
         return order
 
     create_invoice(order)
+    mark_invoice_created(order)
     # what happens if invoice hasn't been created / solution retry logic
 
     send_notification(order)
+    mark_notification_sent(order)
     # what happens if notification hasn't been sent / solution retry logic
 
     mark_order_status(order, "COMPLETED")

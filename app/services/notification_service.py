@@ -1,12 +1,12 @@
-from app.storage.in_memory import notifications
+from app.storage import json_storage
 
-
-def mark_notification_sent(order):
-    order["steps"]["notification"] = "SENT"
+NOTIFICATIONS_PATH = json_storage.STORAGE_PATHS["notifications"]
 
 
 def send_notification(order):
+    notifications = get_notifications()
     notification_id = f"ntf_{order['order_id']}"
+
     notifications[notification_id] = {
         "notification_id": notification_id,
         "order_id": order["order_id"],
@@ -16,9 +16,15 @@ def send_notification(order):
         "status": "SENT",
         "message": f"Your order {order['order_id']} has been confirmed.",
     }
-    mark_notification_sent(order)
+
+    save_notifications(notifications)
+
     return notifications[notification_id]
 
 
 def get_notifications():
-    return notifications
+    return json_storage.load_json(NOTIFICATIONS_PATH)
+
+
+def save_notifications(notifications):
+    json_storage.save_json(NOTIFICATIONS_PATH, notifications)

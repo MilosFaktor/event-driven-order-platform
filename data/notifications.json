@@ -1,1 +1,20 @@
-{}
+{
+  "ntf_ord_050df6b1": {
+    "notification_id": "ntf_ord_050df6b1",
+    "order_id": "ord_050df6b1",
+    "customer_id": "cust_123",
+    "channel": "email",
+    "type": "ORDER_CONFIRMED",
+    "status": "SENT",
+    "message": "Your order ord_050df6b1 has been confirmed."
+  },
+  "ntf_ord_97fb4179": {
+    "notification_id": "ntf_ord_97fb4179",
+    "order_id": "ord_97fb4179",
+    "customer_id": "cust_123",
+    "channel": "email",
+    "type": "ORDER_CONFIRMED",
+    "status": "SENT",
+    "message": "Your order ord_97fb4179 has been confirmed."
+  }
+}

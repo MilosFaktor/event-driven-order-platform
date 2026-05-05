@@ -1,9 +1,7 @@
 from app.services.inventory_service import get_inventory
-from app.storage.in_memory import invoices
+from app.storage import json_storage
 
-
-def mark_invoice_created(order):
-    order["steps"]["invoice"] = "CREATED"
+INVOICES_PATH = json_storage.STORAGE_PATHS["invoices"]
 
 
 def create_invoice_items_snapshot(order):
@@ -28,6 +26,7 @@ def create_invoice_items_snapshot(order):
 
 
 def create_invoice(order):
+    invoices = get_invoices()
     invoice_id = f"inv_{order['order_id']}"
     invoice_items = create_invoice_items_snapshot(order)
 
@@ -40,9 +39,14 @@ def create_invoice(order):
         "status": "CREATED",
     }
 
-    mark_invoice_created(order)
+    save_invoices(invoices)
+
     return invoices[invoice_id]
 
 
 def get_invoices():
-    return invoices
+    return json_storage.load_json(INVOICES_PATH)
+
+
+def save_invoices(invoices):
+    json_storage.save_json(INVOICES_PATH, invoices)
