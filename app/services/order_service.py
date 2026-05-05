@@ -23,6 +23,7 @@ def order_failed(order):
 
 def mark_order_status(order, status):
     order["status"] = status
+    print(f"Order status changed to: {status}")
     orders = get_orders()
     orders[order["order_id"]] = order
     save_orders(orders)
@@ -33,8 +34,11 @@ def mark_order_status(order, status):
 
 def payment_captured_mock(order):
     # payment mock
-    print("Payment captured successfully")
     order["steps"]["payment"] = "CAPTURED"
+    print("Payment captured successfully")
+    orders = get_orders()
+    orders[order["order_id"]] = order
+    save_orders(orders)
 
 
 def is_payment_captured(order):
