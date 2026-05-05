@@ -27,26 +27,27 @@ def process_next_order_worker_server():
 
 
 def worker_server():
-    order_id = "order_123"
+    # order_id = "order_123"
     seconds = 0
     while True:
         if not_queue_empty():
+            print("Work registered in queue")
             process_next_order_worker_server()
 
         print(f"[{seconds}]Queue: Empty")
-        if (seconds % 4) == 0:
-            create_order(
-                idempotency_key="5sdfg5sdfg5",
-                order_id=order_id,
-                customer_id="cust_123",
-                items=[
-                    {"sku": "SKU-001", "quantity": 2},
-                    {"sku": "SKU-002", "quantity": 1},
-                ],
-                currency="EUR",
-            )
-            enqueue_order(order_id)
-            print("Queue: Enqueued_order")
+        # if (seconds % 4) == 0:
+        #     create_order(
+        #         idempotency_key="5sdfg5sdfg5",
+        #         order_id=order_id,
+        #         customer_id="cust_123",
+        #         items=[
+        #             {"sku": "SKU-001", "quantity": 2},
+        #             {"sku": "SKU-002", "quantity": 1},
+        #         ],
+        #         currency="EUR",
+        #     )
+        #     enqueue_order(order_id)
+        #     print("Queue: Enqueued_order")
         seconds += config.QUEUE_INTERVAL
         time.sleep(config.QUEUE_INTERVAL)
 
