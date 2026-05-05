@@ -7,27 +7,25 @@ from app.services.inventory_service import (
 )
 from app.services.invoice_service import create_invoice
 from app.services.notification_service import send_notification
-from app.storage.in_memory import idempotency_keys, orders
+from app.storage import json_storage
+
+ORDERS_PATH = json_storage.STORAGE_PATHS["orders"]
+IDEMPOTENCY_KEYS_PATH = json_storage.STORAGE_PATHS["idempotency_keys"]
 
 
 def order_is_completed(order):
     return order["status"] == "COMPLETED"
 
 
-def mark_order_processing(order):
-    order["status"] = "PROCESSING"
-
-
-def mark_order_completed(order):
-    order["status"] = "COMPLETED"
-
-
 def order_failed(order):
     return order["status"] == "FAILED"
 
 
-def mark_order_failed(order):
-    order["status"] = "FAILED"
+def mark_order_status(order, status):
+    order["status"] = status
+    orders = get_orders()
+    orders[order["order_id"]] = order
+    save_orders(orders)
 
 
 # ============== future payment_service.py =================
@@ -47,7 +45,9 @@ def is_payment_captured(order):
 
 
 def create_order(idempotency_key, order_id, customer_id, items, currency):
-    idempotency_keys[idempotency_key] = order_id
+    store_idempotency_key(idempotency_key, order_id)
+
+    orders = get_orders()
     orders[order_id] = {
         "order_id": order_id,
         "customer_id": customer_id,
@@ -62,15 +62,17 @@ def create_order(idempotency_key, order_id, customer_id, items, currency):
         },
         "failure_reason": None,
     }
+    save_orders(orders)
 
 
 def process_order(order_id):
+    orders = get_orders()
     order = orders[order_id]
 
     if order_is_completed(order):
         return order
 
-    mark_order_processing(order)
+    mark_order_status(order, "PROCESSING")
     reserve_inventory(order)
 
     if order_failed(order):
@@ -81,7 +83,7 @@ def process_order(order_id):
     if is_payment_captured(order):
         finalize_inventory_sale(order)
     else:
-        mark_order_failed(order)
+        mark_order_status(order, "FAILED")
         release_order_inventory(order)
         return order
 
@@ -94,20 +96,26 @@ def process_order(order_id):
     send_notification(order)
     # what happens if notification hasn't been sent / solution retry logic
 
-    mark_order_completed(order)
+    mark_order_status(order, "COMPLETED")
 
     return order
 
 
-def get_all_orders():
-    return list(orders.values())
+def get_orders():
+    return json_storage.load_json(ORDERS_PATH)
+
+
+def save_orders(orders):
+    json_storage.save_json(ORDERS_PATH, orders)
 
 
 def get_order(order_id):
+    orders = get_orders()
     return orders.get(order_id, None)
 
 
 def generate_order_id():
+    orders = get_orders()
     while True:
         order_id = f"ord_{uuid4().hex[:8]}"
         if order_id not in orders:
@@ -115,8 +123,15 @@ def generate_order_id():
 
 
 def get_order_id_by_idempotency_key(idempotency_key):
+    idempotency_keys = get_idempotency_keys()
     return idempotency_keys.get(idempotency_key)
 
 
 def get_idempotency_keys():
-    return idempotency_keys
+    return json_storage.load_json(IDEMPOTENCY_KEYS_PATH)
+
+
+def store_idempotency_key(idempotency_key, order_id):
+    idempotency_keys = get_idempotency_keys()
+    idempotency_keys[idempotency_key] = order_id
+    json_storage.save_json(IDEMPOTENCY_KEYS_PATH, idempotency_keys)

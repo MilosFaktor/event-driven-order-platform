@@ -1,6 +1,6 @@
 import json
 
-storage = {
+STORAGE_PATHS = {
     "queue": "data/processing_queue.json",
     "inventory": "data/inventory.json",
     "invoices": "data/invoices.json",
