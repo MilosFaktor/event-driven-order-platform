@@ -7,3 +7,7 @@ def enqueue_order(order_id):
 
 def get_processing_queue():
     return processing_queue
+
+
+def not_queue_empty():
+    return get_processing_queue() != []
