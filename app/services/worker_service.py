@@ -1,11 +1,14 @@
 import time
 
 from app import config
+from app.logging_config import configure_logging, get_logger
 from app.services.order_service import process_order
 from app.services.queue_service import (
     dequeue_order,
     not_queue_empty,
 )
+
+logger = get_logger("worker")
 
 
 def process_next_order():
@@ -16,21 +19,21 @@ def process_next_order():
 
 
 def worker_server():
-    # order_id = "order_123"
     seconds = 0
     while True:
         if not_queue_empty():
-            print("Work registered in queue")
+            logger.info("Work registered in queue")
             process_next_order()
 
-        print(f"[{seconds}]seconds, running ...")
+        logger.info("[%s] Seconds running ...", seconds)
 
         seconds += config.QUEUE_INTERVAL
         time.sleep(config.QUEUE_INTERVAL)
 
 
 def main():
-    print("Worker has been started.")
+    configure_logging()
+    logger.info("Worker started")
     worker_server()
 
 

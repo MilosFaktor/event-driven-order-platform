@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Header, HTTPException, Response
 
+from app.logging_config import configure_logging, get_logger
 from app.models.orders import CreateOrderRequest
 from app.services.inventory_service import get_inventory
 from app.services.invoice_service import get_invoices
@@ -16,6 +17,8 @@ from app.services.queue_service import enqueue_order, get_processing_queue
 from app.services.worker_service import process_next_order
 
 app = FastAPI()
+configure_logging()
+logger = get_logger("api")
 
 
 @app.get("/")
