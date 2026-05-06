@@ -7,10 +7,10 @@ from app.services.notification_service import get_notifications
 from app.services.order_service import (
     create_order,
     generate_order_id,
-    get_all_orders,
     get_idempotency_keys,
     get_order,
     get_order_id_by_idempotency_key,
+    get_orders,
 )
 from app.services.queue_service import enqueue_order, get_processing_queue
 from app.services.worker_service import process_next_order
@@ -63,7 +63,7 @@ def create_new_order(
 
 @app.get("/v1/orders")
 def read_orders():
-    return get_all_orders()
+    return get_orders()
 
 
 @app.get("/v1/orders/{order_id}")
