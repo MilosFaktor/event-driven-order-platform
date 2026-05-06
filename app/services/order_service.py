@@ -66,6 +66,8 @@ def process_order(order_id):
         return order
 
     mark_order_status(order, "PROCESSING")
+    save_order(order)
+
     reserve_inventory(order)
     save_order(order)
 
@@ -82,6 +84,7 @@ def process_order(order_id):
         mark_order_status(order, "FAILED")
         save_order(order)
         release_order_inventory(order)
+        save_order(order)
         return order
 
     if order_failed(order):
