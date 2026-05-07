@@ -204,7 +204,7 @@ def get_order_id_by_idempotency_key(idempotency_key):
     idempotency_keys = get_idempotency_keys()
     order_id = idempotency_keys.get(idempotency_key)
     if order_id is None:
-        service_logger.info("idempotency_key_not_found")
+        service_logger.debug("idempotency_key_not_found")
     else:
         service_logger.info("idempotency_key_matched order_id=%s", order_id)
     return order_id

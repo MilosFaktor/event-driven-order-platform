@@ -35,17 +35,33 @@ def create_new_order(
     response: Response,
     idempotency_key: str = Header(..., alias="Idempotency-Key"),
 ):
+    logger.info(
+        "create_order_request_received customer_id=%s item_count=%s currency=%s",
+        request.customer_id,
+        len(request.items),
+        request.currency,
+    )
     existing_order_id = get_order_id_by_idempotency_key(idempotency_key)
 
     # idempotency check
     if existing_order_id is not None:
+        logger.info("idempotent_order_request_matched order_id=%s", existing_order_id)
         existing_order = get_order(existing_order_id)
 
         if existing_order is None:
+            logger.error(
+                "inconsistent_idempotency_state order_id=%s",
+                existing_order_id,
+            )
             raise HTTPException(
                 status_code=500, detail="Inconsistent idempotency state"
             )
         response.status_code = 200
+        logger.info(
+            "create_order_response_returned order_id=%s status=%s http_status=200",
+            existing_order["order_id"],
+            existing_order["status"],
+        )
         return {
             "order_id": existing_order["order_id"],
             "status": existing_order["status"],
@@ -60,6 +76,11 @@ def create_new_order(
         currency=request.currency,
     )
     enqueue_order(order_id)
+    logger.info("order_created_and_enqueued order_id=%s", order_id)
+    logger.info(
+        "create_order_response_returned order_id=%s status=PENDING http_status=201",
+        order_id,
+    )
 
     return {"order_id": order_id, "status": "PENDING"}
 
@@ -71,8 +92,10 @@ def read_orders():
 
 @app.get("/v1/orders/{order_id}")
 def read_order(order_id: str):
+    logger.info("read_order_request_received order_id=%s", order_id)
     order = get_order(order_id)
     if order is None:
+        logger.warning("read_order_not_found order_id=%s", order_id)
         raise HTTPException(status_code=404, detail="Order not found")
     return order
 
@@ -82,9 +105,16 @@ def read_order(order_id: str):
 
 @app.post("/v1/worker/process-next-order")
 def worker_process_next_order():
+    logger.info("manual_worker_process_next_requested")
     result = process_next_order()
     if result is None:
+        logger.info("manual_worker_process_next_empty_queue")
         raise HTTPException(status_code=200, detail="No orders to process")
+    logger.info(
+        "manual_worker_process_next_finished order_id=%s status=%s",
+        result["order_id"],
+        result["status"],
+    )
     return result
 
 
