@@ -1,7 +1,7 @@
 import logging
 import sys
 
-LOGGING_LEVEL = logging.INFO
+from app.core.config import settings
 
 
 def configure_logging_api():
@@ -20,7 +20,7 @@ def configure_root_logger():
     if root_logger.handlers:
         return
 
-    root_logger.setLevel(LOGGING_LEVEL)
+    root_logger.setLevel(settings.log_level)
 
     handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter(
@@ -38,7 +38,7 @@ def configure_api_logger():
     if logger.handlers:
         return
 
-    logger.setLevel(LOGGING_LEVEL)
+    logger.setLevel(settings.log_level)
     logger.propagate = False
 
     handler = logging.StreamHandler(sys.stdout)
@@ -57,7 +57,7 @@ def configure_worker_logger():
     if logger.handlers:
         return
 
-    logger.setLevel(LOGGING_LEVEL)
+    logger.setLevel(settings.log_level)
     logger.propagate = False
 
     handler = logging.StreamHandler(sys.stdout)

@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from app.core.logging_config import get_logger
+from app.services.idempotency_service import store_idempotency_key
 from app.services.inventory_service import (
     finalize_inventory_sale,
     release_order_inventory,
@@ -12,7 +13,7 @@ from app.services.payment_service import is_payment_captured, payment_captured_m
 from app.storage import json_storage
 
 ORDERS_PATH = json_storage.STORAGE_PATHS["orders"]
-IDEMPOTENCY_KEYS_PATH = json_storage.STORAGE_PATHS["idempotency_keys"]
+
 
 pipeline_logger = get_logger("orders.pipeline")
 service_logger = get_logger("orders.service")
@@ -194,24 +195,3 @@ def generate_order_id():
         if order_id not in orders:
             service_logger.info("order_id_generated order_id=%s", order_id)
             return order_id
-
-
-def get_idempotency_keys():
-    return json_storage.load_json(IDEMPOTENCY_KEYS_PATH)
-
-
-def get_order_id_by_idempotency_key(idempotency_key):
-    idempotency_keys = get_idempotency_keys()
-    order_id = idempotency_keys.get(idempotency_key)
-    if order_id is None:
-        service_logger.debug("idempotency_key_not_found")
-    else:
-        service_logger.info("idempotency_key_matched order_id=%s", order_id)
-    return order_id
-
-
-def store_idempotency_key(idempotency_key, order_id):
-    idempotency_keys = get_idempotency_keys()
-    idempotency_keys[idempotency_key] = order_id
-    json_storage.save_json(IDEMPOTENCY_KEYS_PATH, idempotency_keys)
-    service_logger.info("idempotency_key_stored order_id=%s", order_id)
