@@ -1,6 +1,9 @@
+from app.core.logging_config import get_logger
 from app.storage import json_storage
 
 NOTIFICATIONS_PATH = json_storage.STORAGE_PATHS["notifications"]
+
+logger = get_logger("notification.service")
 
 
 def send_notification(order):
@@ -18,6 +21,12 @@ def send_notification(order):
     }
 
     save_notifications(notifications)
+    logger.info(
+        "notification_sent order_id=%s notification_id=%s channel=%s",
+        order["order_id"],
+        notification_id,
+        notifications[notification_id]["channel"],
+    )
 
     return notifications[notification_id]
 

@@ -1,7 +1,10 @@
+from app.core.logging_config import get_logger
 from app.services.inventory_service import get_inventory
 from app.storage import json_storage
 
 INVOICES_PATH = json_storage.STORAGE_PATHS["invoices"]
+
+logger = get_logger("invoice.service")
 
 
 def create_invoice_items_snapshot(order):
@@ -40,6 +43,11 @@ def create_invoice(order):
     }
 
     save_invoices(invoices)
+    logger.info(
+        "invoice_created order_id=%s invoice_id=%s",
+        order["order_id"],
+        invoice_id,
+    )
 
     return invoices[invoice_id]
 

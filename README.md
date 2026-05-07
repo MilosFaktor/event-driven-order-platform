@@ -18,7 +18,7 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current version: `v0.5.4`
+Current version: `v0.5.5`
 
 The current local version includes:
 
@@ -28,6 +28,7 @@ The current local version includes:
 - manual worker processing endpoint
 - standalone worker process experiment
 - JSON-backed local persistence
+- structured local logging for API, worker, queue, and pipeline services
 - order processing pipeline:
   - reserve inventory
   - capture mock payment
@@ -50,6 +51,21 @@ Worker
   -> loads order from JSON
   -> processes business pipeline
   -> persists updated state to JSON
+```
+
+Logging is intentionally local and simple for now:
+
+```text
+API               -> request/response flow
+worker.runtime    -> worker lifecycle
+worker.service    -> queue consumption
+orders.service    -> order creation/idempotency helpers
+orders.pipeline   -> order processing workflow
+queue.service     -> queue mutations
+inventory.service -> inventory changes
+payment.service   -> mock payment events
+invoice.service   -> invoice creation
+notification.service -> notification creation
 ```
 
 Local storage files:
@@ -163,6 +179,7 @@ GitHub Actions currently runs Ruff checks, and the `main` branch is protected so
 
 Next planned versions:
 
+- `v0.5.6` - config and environment settings
 - `v0.6.0` - failure handling
 - `v0.6.1` - retry/backoff simulation
 - `v0.6.2` - local DLQ simulation
