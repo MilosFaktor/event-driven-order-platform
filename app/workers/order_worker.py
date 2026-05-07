@@ -1,6 +1,6 @@
 import time
 
-from app.core import config
+from app.core.config import settings
 from app.core.logging_config import configure_logging_worker, get_logger
 from app.services.queue_service import not_queue_empty
 from app.services.worker_service import process_next_order
@@ -19,8 +19,8 @@ def worker_server():
 
         logger.debug("worker_heartbeat seconds=%s", seconds)
 
-        seconds += config.QUEUE_INTERVAL
-        time.sleep(config.QUEUE_INTERVAL)
+        seconds += settings.queue_interval
+        time.sleep(settings.queue_interval)
 
 
 def main():

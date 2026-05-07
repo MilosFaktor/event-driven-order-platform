@@ -1,12 +1,13 @@
 [project]
 name = "event-driven-order-platform"
-version = "0.5.4"
+version = "0.5.6"
 description = "Local order processing system (Phase 1)"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.136.1",
     "pydantic>=2.13.3",
+    "pydantic-settings>=2.14.0",
     "uvicorn>=0.46.0",
 ]
 
