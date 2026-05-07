@@ -13,17 +13,18 @@ def worker_server():
     seconds = 0
     while True:
         if not_queue_empty():
-            logger.info("Work registered in queue")
+            logger.info("queue_work_detected")
+
             process_next_order()
 
-        logger.info("[%s] Seconds running ...", seconds)
+        logger.debug("worker_heartbeat seconds=%s", seconds)
 
         seconds += config.QUEUE_INTERVAL
         time.sleep(config.QUEUE_INTERVAL)
 
 
 def main():
-    logger.info("Worker started")
+    logger.info("worker_started")
     worker_server()
 
 

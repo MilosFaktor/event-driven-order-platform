@@ -1,6 +1,8 @@
 import logging
 import sys
 
+LOGGING_LEVEL = logging.INFO
+
 
 def configure_logging_api():
     configure_root_logger()
@@ -18,11 +20,11 @@ def configure_root_logger():
     if root_logger.handlers:
         return
 
-    root_logger.setLevel(logging.INFO)
+    root_logger.setLevel(LOGGING_LEVEL)
 
     handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        "%(asctime)s | %(name)s | %(levelname)s | %(message)s",
         datefmt="%H:%M:%S",
     )
 
@@ -36,7 +38,7 @@ def configure_api_logger():
     if logger.handlers:
         return
 
-    logger.setLevel(logging.INFO)
+    logger.setLevel(LOGGING_LEVEL)
     logger.propagate = False
 
     handler = logging.StreamHandler(sys.stdout)
@@ -55,7 +57,7 @@ def configure_worker_logger():
     if logger.handlers:
         return
 
-    logger.setLevel(logging.INFO)
+    logger.setLevel(LOGGING_LEVEL)
     logger.propagate = False
 
     handler = logging.StreamHandler(sys.stdout)

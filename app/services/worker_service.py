@@ -7,6 +7,11 @@ logger = get_logger(__name__)
 
 def process_next_order():
     order_id = dequeue_order()
+    logger.info("order_dequeued order_id=%s", order_id)
     if order_id is None:
+        logger.warning("no_order_to_process")
         return None
-    return process_order(order_id)
+    logger.info("order_processing_started order_id=%s", order_id)
+    processed_order = process_order(order_id)
+    logger.info("order_processed_finished order_id=%s", order_id)
+    return processed_order
