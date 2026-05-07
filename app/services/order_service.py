@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from app.core.logging_config import get_logger
 from app.services.inventory_service import (
     finalize_inventory_sale,
     release_order_inventory,
@@ -12,6 +13,8 @@ from app.storage import json_storage
 
 ORDERS_PATH = json_storage.STORAGE_PATHS["orders"]
 IDEMPOTENCY_KEYS_PATH = json_storage.STORAGE_PATHS["idempotency_keys"]
+
+logger = get_logger(__name__)
 
 
 def order_is_completed(order):

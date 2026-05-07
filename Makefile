@@ -19,11 +19,11 @@ run-sandbox:
 	uv run python -m experiments.order_pipeline_sandbox
 
 run-worker:
-	uv run python -m app.services.worker_service
+	uv run python -m app.workers.order_worker
 
 
 api:
-	uv run uvicorn app.main:app --reload
+	uv run uvicorn app.api.main:app --reload
 
 api-create-order-1:
 	curl -X POST http://127.0.0.1:8000/v1/orders \

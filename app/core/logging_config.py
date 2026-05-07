@@ -2,9 +2,13 @@ import logging
 import sys
 
 
-def configure_logging():
+def configure_logging_api():
     configure_root_logger()
     configure_api_logger()
+
+
+def configure_logging_worker():
+    configure_root_logger()
     configure_worker_logger()
 
 
