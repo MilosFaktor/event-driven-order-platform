@@ -6,7 +6,7 @@ from app.services.queue_service import not_queue_empty
 from app.services.worker_service import process_next_order
 
 configure_logging_worker()
-logger = get_logger("worker")
+logger = get_logger("worker.runtime")
 
 
 def worker_server():

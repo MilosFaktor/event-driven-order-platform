@@ -52,7 +52,7 @@ def configure_api_logger():
 
 
 def configure_worker_logger():
-    logger = logging.getLogger("worker")
+    logger = logging.getLogger("worker.runtime")
 
     if logger.handlers:
         return

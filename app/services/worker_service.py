@@ -2,7 +2,7 @@ from app.core.logging_config import get_logger
 from app.services.order_service import process_order
 from app.services.queue_service import dequeue_order
 
-logger = get_logger(__name__)
+logger = get_logger("worker.service")
 
 
 def process_next_order():
@@ -13,5 +13,6 @@ def process_next_order():
         return None
     logger.info("order_processing_started order_id=%s", order_id)
     processed_order = process_order(order_id)
-    logger.info("order_processed_finished order_id=%s", order_id)
+    logger.info("order_processing_finished order_id=%s", order_id)
+
     return processed_order
