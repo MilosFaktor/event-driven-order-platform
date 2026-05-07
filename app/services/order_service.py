@@ -32,17 +32,24 @@ def order_being_processed(order):
 
 def mark_order_status(order, status):
     order["status"] = status
-    print(f"Order status changed to: {status}")
+    pipeline_logger.info(
+        "order_status_changed order_id=%s status=%s",
+        order["order_id"],
+        status,
+    )
 
 
 def mark_invoice_created(order):
     order["steps"]["invoice"] = "CREATED"
-    print("Invoice created successfully")
+    pipeline_logger.debug("order_invoice_step_updated order_id=%s", order["order_id"])
 
 
 def mark_notification_sent(order):
     order["steps"]["notification"] = "SENT"
-    print("Notification sent successfully")
+    pipeline_logger.debug(
+        "order_notification_step_updated order_id=%s",
+        order["order_id"],
+    )
 
 
 def create_order(idempotency_key, order_id, customer_id, items, currency):
@@ -92,7 +99,6 @@ def process_order(order_id):
 
     mark_order_status(order, "PROCESSING")
     save_order(order)
-    pipeline_logger.info("order_status_updated order_id=%s status=PROCESSING", order_id)
 
     pipeline_logger.info("inventory_reservation_started order_id=%s", order_id)
     reserve_inventory(order)
@@ -107,7 +113,6 @@ def process_order(order_id):
     save_order(order)
 
     if is_payment_captured(order):
-        pipeline_logger.info("payment_captured order_id=%s", order_id)
         pipeline_logger.info(
             "inventory_sale_finalization_started order_id=%s", order_id
         )

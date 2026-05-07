@@ -1,6 +1,9 @@
+from app.core.logging_config import get_logger
 from app.storage import json_storage
 
 QUEUE_PATH = json_storage.STORAGE_PATHS["queue"]
+
+logger = get_logger("queue.service")
 
 
 def enqueue_order(order_id):
@@ -10,6 +13,7 @@ def enqueue_order(order_id):
 
     queue.append(order_id)
     json_storage.save_json(QUEUE_PATH, queue)
+    logger.info("order_enqueued order_id=%s queue_depth=%s", order_id, len(queue))
 
 
 def dequeue_order():
@@ -21,6 +25,7 @@ def dequeue_order():
         return None
     order_id = queue.pop(0)
     json_storage.save_json(QUEUE_PATH, queue)
+    logger.debug("order_dequeued order_id=%s queue_depth=%s", order_id, len(queue))
     return order_id
 
 
