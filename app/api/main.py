@@ -19,6 +19,7 @@ from app.services.queue_service import enqueue_order, get_processing_queue
 from app.services.worker_service import process_next_order
 
 app = FastAPI()
+
 configure_logging_api()
 logger = get_logger("api")
 
