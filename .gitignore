@@ -1,2 +1,4 @@
 private/**
 __pycache__
+.env.local
+.env.prod

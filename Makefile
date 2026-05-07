@@ -1,6 +1,7 @@
 .PHONY: check format lint run api api-create-order-1 api-create-order-2 \
 	api-get-orders api-get-idem-keys api-get-inventory run-worker api-get-q \
 	worker-process-next run-sandbox api-get-ntfs api-get-invoices storage-reset \
+	api-local api-prod worker-local worker-prod
 
 check:
 	uv run ruff check .
@@ -24,6 +25,18 @@ run-worker:
 
 api:
 	uv run uvicorn app.api.main:app --reload
+
+api-local:
+	ENV_FILE=.env.local uv run uvicorn app.api.main:app --reload
+
+api-prod:
+	ENV_FILE=.env.prod uv run uvicorn app.api.main:app
+
+worker-local:
+	ENV_FILE=.env.local uv run python -m app.workers.order_worker
+
+worker-prod:
+	ENV_FILE=.env.prod uv run python -m app.workers.order_worker
 
 api-create-order-1:
 	curl -X POST http://127.0.0.1:8000/v1/orders \
@@ -59,4 +72,4 @@ worker-process-next:
 	curl -X POST http://127.0.0.1:8000/v1/worker/process-next-order
 
 storage-reset:
-	uv run python -m  scripts.reset_json_data
+	uv run python -m scripts.reset_json_data
