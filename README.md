@@ -18,7 +18,7 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current version: `v0.5.5`
+Current version: `v0.5.6`
 
 The current local version includes:
 
@@ -29,6 +29,8 @@ The current local version includes:
 - standalone worker process experiment
 - JSON-backed local persistence
 - structured local logging for API, worker, queue, and pipeline services
+- environment-based settings with safe defaults in `.env.example`
+- cleaner service boundaries for order storage, idempotency, and order processing
 - order processing pipeline:
   - reserve inventory
   - capture mock payment
@@ -66,6 +68,19 @@ inventory.service -> inventory changes
 payment.service   -> mock payment events
 invoice.service   -> invoice creation
 notification.service -> notification creation
+```
+
+Current service split:
+
+```text
+orders.service        -> create/load/save orders
+idempotency.service   -> idempotency key lookup/storage
+orders.pipeline       -> processing workflow
+queue.service         -> queue persistence
+inventory.service     -> inventory state changes
+payment.service       -> mock payment capture
+invoice.service       -> invoice records
+notification.service  -> notification records
 ```
 
 Local storage files:
@@ -137,7 +152,7 @@ make run-worker
 Reset local JSON data:
 
 ```bash
-make reset-json-data
+make storage-reset
 ```
 
 ## API Endpoints
@@ -179,7 +194,6 @@ GitHub Actions currently runs Ruff checks, and the `main` branch is protected so
 
 Next planned versions:
 
-- `v0.5.6` - config and environment settings
 - `v0.6.0` - failure handling
 - `v0.6.1` - retry/backoff simulation
 - `v0.6.2` - local DLQ simulation

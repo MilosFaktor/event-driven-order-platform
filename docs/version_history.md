@@ -269,11 +269,50 @@ API creates a pending order
 -> orders.pipeline marks the order completed
 ```
 
+## v0.5.6 - Config And Service Cleanup
+
+Goal: centralize local runtime settings and clean up service responsibilities before failure handling.
+
+Changes:
+
+- Added Pydantic Settings in `app/core/config.py`.
+- Added environment-based settings for:
+  - `ENVIRONMENT`
+  - `LOG_LEVEL`
+  - `QUEUE_INTERVAL`
+- Added `.env.example` with safe runnable defaults.
+- Kept `.env.local` and `.env.prod` private/ignored for local and prod-like runs.
+- Wired logging level to settings instead of a hardcoded logging constant.
+- Wired worker queue interval to settings.
+- Added Makefile targets for private local and prod-like API/worker runs.
+- Extracted idempotency logic into `idempotency_service.py`.
+- Added an `idempotency.service` logger.
+- Extracted the order processing workflow into `order_pipeline_service.py`.
+- Kept `order_service.py` focused on order creation, loading, saving, and ID generation.
+- Kept `worker_service.py` focused on dequeueing one order and calling the processing pipeline.
+
+Why it mattered:
+
+This version reduced hardcoded runtime flags and made the codebase easier to extend. The order pipeline is now isolated in the place where future failure handling, retry logic, and compensation behavior will naturally live.
+
+Current local service boundaries:
+
+```text
+orders.service        -> order records and persistence helpers
+idempotency.service   -> idempotency key records
+orders.pipeline       -> order processing workflow
+worker.service        -> dequeue one order and invoke the pipeline
+queue.service         -> JSON queue operations
+inventory.service     -> inventory reservation/finalization
+payment.service       -> mock payment capture
+invoice.service       -> invoice record creation
+notification.service  -> notification record creation
+```
+
 ## Next Versions
 
 Planned next steps:
 
-- `v0.5.6` - config and environment settings
 - `v0.6.0` - failure handling
 - `v0.6.1` - retry/backoff simulation
 - `v0.6.2` - local DLQ simulation
