@@ -228,10 +228,52 @@ invoices            -> data/invoices.json
 notifications       -> data/notifications.json
 ```
 
+## v0.5.5 - Local Logging And Observability
+
+Goal: make the local API and worker flow observable through structured logs.
+
+Changes:
+
+- Moved shared logging setup into `app/core/logging_config.py`.
+- Added API logs for order creation requests, idempotency matches, returned responses, order reads, and manual worker processing.
+- Added worker runtime logs for startup, queue detection, and debug heartbeats.
+- Added worker service logs for dequeueing and processing one queued order.
+- Split order logging into:
+  - `orders.service` for order creation, idempotency, loading, and saving helpers.
+  - `orders.pipeline` for the multi-step order processing workflow.
+- Added service-level logs for:
+  - `queue.service`
+  - `inventory.service`
+  - `payment.service`
+  - `invoice.service`
+  - `notification.service`
+- Replaced old `print()` statements in the service flow with logger calls.
+- Tuned noisy internal details, such as repeated order saves and inventory item movements, to `DEBUG`.
+
+Why it mattered:
+
+This made the local system easier to understand and debug while preparing the project for future CloudWatch-style observability in AWS.
+
+Example local trace:
+
+```text
+API creates a pending order
+-> queue.service enqueues the order
+-> worker.runtime detects work
+-> worker.service dequeues the order
+-> orders.pipeline starts processing
+-> inventory.service reserves/finalizes stock
+-> payment.service captures mock payment
+-> invoice.service creates invoice record
+-> notification.service creates notification record
+-> orders.pipeline marks the order completed
+```
+
 ## Next Versions
 
 Planned next steps:
 
+- `v0.5.6` - config and environment settings
 - `v0.6.0` - failure handling
 - `v0.6.1` - retry/backoff simulation
 - `v0.6.2` - local DLQ simulation
