@@ -18,7 +18,7 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current version: `v0.5.5`
+Current version: `v0.5.6`
 
 The current local version includes:
 
@@ -29,6 +29,8 @@ The current local version includes:
 - standalone worker process experiment
 - JSON-backed local persistence
 - structured local logging for API, worker, queue, and pipeline services
+- environment-based settings with safe defaults in `.env.example`
+- cleaner service boundaries for order storage, idempotency, and order processing
 - order processing pipeline:
   - reserve inventory
   - capture mock payment
@@ -68,6 +70,21 @@ invoice.service   -> invoice creation
 notification.service -> notification creation
 ```
 
+The current logging setup keeps separate named loggers for API, worker, and services even though they mostly share the same stdout formatting. This is intentional for now: the names make the flow easier to trace locally, and the formatter/handler setup can be simplified or changed later when the logging direction becomes clearer.
+
+Current service split:
+
+```text
+orders.service        -> create/load/save orders
+idempotency.service   -> idempotency key lookup/storage
+orders.pipeline       -> processing workflow
+queue.service         -> queue persistence
+inventory.service     -> inventory state changes
+payment.service       -> mock payment capture
+invoice.service       -> invoice records
+notification.service  -> notification records
+```
+
 Local storage files:
 
 ```text
@@ -78,6 +95,17 @@ data/inventory.json
 data/invoices.json
 data/notifications.json
 ```
+
+## Screenshots
+
+
+Manual worker processing through the API:
+
+<img src="docs/screenshots/02-manual-worker-execution-via-api.png" width="900">
+
+Standalone worker processing queued work:
+
+<img src="docs/screenshots/03-standalone-worker.png" width="900">
 
 ## AWS Mapping
 
@@ -107,7 +135,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 Install project dependencies:
 
 ```bash
-uv sync
+uv sync --dev
 ```
 
 Start the API:
@@ -137,7 +165,7 @@ make run-worker
 Reset local JSON data:
 
 ```bash
-make reset-json-data
+make storage-reset
 ```
 
 ## API Endpoints
@@ -179,10 +207,12 @@ GitHub Actions currently runs Ruff checks, and the `main` branch is protected so
 
 Next planned versions:
 
-- `v0.5.6` - config and environment settings
-- `v0.6.0` - failure handling
-- `v0.6.1` - retry/backoff simulation
-- `v0.6.2` - local DLQ simulation
+- `v0.5.8` - architecture docs foundation
+- `v0.5.9` - contract models foundation
+- `v0.6.0` - repository / adapter foundation
+- `v0.6.1` - failure handling
+- `v0.6.2` - retry/backoff simulation
+- `v0.6.3` - local DLQ simulation
 - `v0.7.0` - tests
-- `v0.8.0` - README and documentation polish
+- `v0.8.0` - documentation polish
 - `v1.0.0` - local Phase 1 MVP complete
