@@ -70,6 +70,8 @@ invoice.service   -> invoice creation
 notification.service -> notification creation
 ```
 
+The current logging setup keeps separate named loggers for API, worker, and services even though they mostly share the same stdout formatting. This is intentional for now: the names make the flow easier to trace locally, and the formatter/handler setup can be simplified or changed later when the logging direction becomes clearer.
+
 Current service split:
 
 ```text
@@ -93,6 +95,17 @@ data/inventory.json
 data/invoices.json
 data/notifications.json
 ```
+
+## Screenshots
+
+
+Manual worker processing through the API:
+
+<img src="docs/screenshots/02-manual-worker-execution-via-api.png" width="900">
+
+Standalone worker processing queued work:
+
+<img src="docs/screenshots/03-standalone-worker.png" width="900">
 
 ## AWS Mapping
 
@@ -122,7 +135,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 Install project dependencies:
 
 ```bash
-uv sync
+uv sync --dev
 ```
 
 Start the API:
@@ -194,9 +207,12 @@ GitHub Actions currently runs Ruff checks, and the `main` branch is protected so
 
 Next planned versions:
 
-- `v0.6.0` - failure handling
-- `v0.6.1` - retry/backoff simulation
-- `v0.6.2` - local DLQ simulation
+- `v0.5.8` - architecture docs foundation
+- `v0.5.9` - contract models foundation
+- `v0.6.0` - repository / adapter foundation
+- `v0.6.1` - failure handling
+- `v0.6.2` - retry/backoff simulation
+- `v0.6.3` - local DLQ simulation
 - `v0.7.0` - tests
-- `v0.8.0` - README and documentation polish
+- `v0.8.0` - documentation polish
 - `v1.0.0` - local Phase 1 MVP complete
