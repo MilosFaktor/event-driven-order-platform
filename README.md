@@ -18,7 +18,7 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current version: `v0.5.6`
+Current version: `v0.5.8`
 
 The current local version includes:
 
@@ -31,6 +31,8 @@ The current local version includes:
 - structured local logging for API, worker, queue, and pipeline services
 - environment-based settings with safe defaults in `.env.example`
 - cleaner service boundaries for order storage, idempotency, and order processing
+- architecture and concept docs for the local system model
+- local order pipeline diagram
 - order processing pipeline:
   - reserve inventory
   - capture mock payment
@@ -96,8 +98,23 @@ data/invoices.json
 data/notifications.json
 ```
 
+## Documentation
+
+Architecture and concept docs:
+
+- [Architecture](docs/architecture.md)
+- [Order processing flow](docs/concepts/order-processing-flow.md)
+- [Worker model](docs/concepts/worker-model.md)
+- [Storage model](docs/concepts/storage-model.md)
+- [Logging](docs/concepts/logging.md)
+- [Configuration](docs/concepts/configuration.md)
+- [Failure handling](docs/concepts/failure-handling.md)
+
 ## Screenshots
 
+Local order pipeline diagram:
+
+<img src="docs/screenshots/00-diagram.png" width="900">
 
 Manual worker processing through the API:
 
@@ -159,7 +176,7 @@ make worker-process-next
 Run the standalone worker experiment:
 
 ```bash
-make run-worker
+make worker
 ```
 
 Reset local JSON data:
@@ -207,7 +224,6 @@ GitHub Actions currently runs Ruff checks, and the `main` branch is protected so
 
 Next planned versions:
 
-- `v0.5.8` - architecture docs foundation
 - `v0.5.9` - contract models foundation
 - `v0.6.0` - repository / adapter foundation
 - `v0.6.1` - failure handling
