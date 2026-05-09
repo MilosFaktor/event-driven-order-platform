@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Header, HTTPException, Response
 
 from app.core.logging_config import configure_logging_api, get_logger
-from app.models.orders import CreateOrderRequest
+from app.models.orders_request import CreateOrderRequest
 from app.services.idempotency_service import (
     get_idempotency_keys,
     get_order_id_by_idempotency_key,

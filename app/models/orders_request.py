@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -17,4 +19,4 @@ class CreateOrderRequest(BaseModel):
 
     customer_id: str
     items: list[OrderItemRequest]
-    currency: str
+    currency: Literal["USD", "EUR"] = "EUR"
