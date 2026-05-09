@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator
 
 
 class OrderItem(BaseModel):
@@ -10,6 +10,13 @@ class OrderItem(BaseModel):
 
     sku: str
     quantity: int = Field(gt=0)
+
+    @field_validator("sku")
+    @classmethod
+    def ensure_sku_starts_with_sku(cls, v: str) -> str:
+        if not v.startswith("SKU-"):
+            raise ValueError("SKU must start with 'SKU-'")
+        return v
 
 
 class OrderSteps(BaseModel):
@@ -35,6 +42,20 @@ class Order(BaseModel):
     status: Literal["PENDING", "PROCESSING", "COMPLETED", "FAILED"] = "PENDING"
     steps: OrderSteps
     failure_reason: str | None = None
+
+    @field_validator("items")
+    @classmethod
+    def ensure_non_empty_items(cls, v: list[OrderItem]) -> list[OrderItem]:
+        if not v:
+            raise ValueError("Order must contain at least one item")
+        return v
+
+    @field_validator("order_id")
+    @classmethod
+    def ensure_order_id_starts_with_ord(cls, v: str) -> str:
+        if not v.startswith("ord_"):
+            raise ValueError("Order ID must start with 'ord_'")
+        return v
 
 
 class Orders(RootModel[dict[str, Order]]):
