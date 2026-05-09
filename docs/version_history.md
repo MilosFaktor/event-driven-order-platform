@@ -269,9 +269,9 @@ API creates a pending order
 -> orders.pipeline marks the order completed
 ```
 
-## v0.5.6 - Config And Service Cleanup
+## v0.5.6 - Config And Environment Settings
 
-Goal: centralize local runtime settings and clean up service responsibilities before failure handling.
+Goal: centralize local runtime settings and local run behavior.
 
 Changes:
 
@@ -285,6 +285,17 @@ Changes:
 - Wired logging level to settings instead of a hardcoded logging constant.
 - Wired worker queue interval to settings.
 - Added Makefile targets for private local and prod-like API/worker runs.
+
+Why it mattered:
+
+This moved runtime behavior out of scattered hardcoded values and into one clear configuration layer. The local app can now run with safe defaults while still supporting private local and prod-like overrides.
+
+## v0.5.7 - Service Cleanup
+
+Goal: clean responsibility boundaries before failure handling.
+
+Changes:
+
 - Extracted idempotency logic into `idempotency_service.py`.
 - Added an `idempotency.service` logger.
 - Extracted the order processing workflow into `order_pipeline_service.py`.
@@ -293,7 +304,7 @@ Changes:
 
 Why it mattered:
 
-This version reduced hardcoded runtime flags and made the codebase easier to extend. The order pipeline is now isolated in the place where future failure handling, retry logic, and compensation behavior will naturally live.
+This made the codebase easier to extend without jumping into repository, adapter, dependency-injection, failure-handling, or retry work too early. The order pipeline is now isolated in the place where future failure handling, retry logic, and compensation behavior will naturally live.
 
 Current local service boundaries:
 
@@ -309,13 +320,55 @@ invoice.service       -> invoice record creation
 notification.service  -> notification record creation
 ```
 
+## v0.5.8 - Architecture Docs Foundation
+
+Goal: capture architecture concepts before deeper implementation.
+
+Changes:
+
+- Added `docs/architecture.md` as a high-level map of the local system shape, responsibility boundaries, and AWS direction.
+- Added concept documentation for the current order-processing flow.
+- Added concept documentation for the worker model.
+- Added concept documentation for the storage model.
+- Added concept documentation for logging.
+- Added concept documentation for configuration.
+- Added failure-handling direction before implementing retry or DLQ behavior.
+- Added a local order pipeline diagram source under `docs/diagrams/local-order-pipeline.drawio`.
+- Added the exported diagram image under `docs/screenshots/00-diagram.png`.
+- Documented current local behavior, future AWS mapping, and known boundaries across the concept docs.
+
+Why it mattered:
+
+This version made the project easier to reason about before adding more moving parts. The docs now act as guardrails for future work on contracts, repository/adapter boundaries, failure handling, retries, DLQ behavior, and AWS migration.
+
+Current concept docs:
+
+```text
+docs/architecture.md
+docs/concepts/order-processing-flow.md
+docs/concepts/worker-model.md
+docs/concepts/storage-model.md
+docs/concepts/logging.md
+docs/concepts/configuration.md
+docs/concepts/failure-handling.md
+```
+
+Diagram artifacts:
+
+```text
+docs/diagrams/local-order-pipeline.drawio
+docs/screenshots/00-diagram.png
+```
+
 ## Next Versions
 
 Planned next steps:
 
-- `v0.6.0` - failure handling
-- `v0.6.1` - retry/backoff simulation
-- `v0.6.2` - local DLQ simulation
+- `v0.5.9` - contract models foundation
+- `v0.6.0` - repository / adapter foundation
+- `v0.6.1` - failure handling
+- `v0.6.2` - retry/backoff simulation
+- `v0.6.3` - local DLQ simulation
 - `v0.7.0` - tests
-- `v0.8.0` - README and documentation polish
-- `v1.0.0` - complete local Phase 1 MVP
+- `v0.8.0` - documentation polish
+- `v1.0.0` - local Phase 1 MVP complete
