@@ -7,7 +7,7 @@ class InventoryItem(BaseModel):
     )
 
     name: str
-    price: int = Field(ge=0)
+    price: float = Field(ge=0)
     available_stock: int = Field(ge=0)
     reserved_stock: int = Field(ge=0)
     sold_stock: int = Field(ge=0)
