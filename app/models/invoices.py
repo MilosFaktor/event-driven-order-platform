@@ -5,8 +5,8 @@ from pydantic import (
     ConfigDict,
     Field,
     RootModel,
-    computed_field,
     field_validator,
+    model_validator,
 )
 
 
@@ -19,11 +19,13 @@ class InvoiceItem(BaseModel):
     name: str
     quantity: int = Field(gt=0)
     unit_price: float = Field(gt=0)
+    line_total: float
 
-    @computed_field  # type: ignore[misc]
-    @property
-    def line_total(self) -> float:
-        return self.quantity * self.unit_price
+    @model_validator(mode="after")
+    def validate_line_total(self):
+        if self.line_total != self.quantity * self.unit_price:
+            raise ValueError("line_total must equal quantity * unit_price")
+        return self
 
     @field_validator("sku")
     @classmethod

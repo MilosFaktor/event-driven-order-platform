@@ -360,11 +360,77 @@ docs/diagrams/local-order-pipeline.drawio
 docs/screenshots/00-diagram.png
 ```
 
+## v0.5.9 - Contract Models Foundation
+
+Goal: define system data shapes before failure, retry, and DLQ complexity grows.
+
+Changes:
+
+- Added Pydantic contract models for stored order records.
+- Added order item and order step models.
+- Added inventory item and inventory root models.
+- Added invoice and invoice item models.
+- Added notification and notification root models.
+- Added idempotency key and processing queue root models.
+- Tightened create-order request validation with allowed currency values and non-empty item checks.
+- Added validation rules for SKU prefixes, generated record ID prefixes, allowed statuses, and allowed step values.
+- Wired RootModel validation into JSON-backed service boundaries:
+  - orders
+  - inventory
+  - invoices
+  - notifications
+  - idempotency keys
+  - processing queue
+- Validated JSON data on load and before save while keeping current service callers working with plain dictionaries.
+- Added clearer order state logging for pipeline checkpoints.
+- Reduced repeated inventory writes during reservation and sale finalization.
+- Stored invoice line totals as generated invoice snapshot data and validated them against quantity and unit price.
+
+Why it mattered:
+
+This version introduced explicit contracts around the local business data without rewriting the whole app around Pydantic objects. The service layer still works with dictionaries, but JSON-backed state now passes through validation at the main storage boundaries.
+
+The work also made the next architecture step clearer: services now contain business behavior plus load/validate/save details, which shows why the future repository/adapter boundary in `v0.6.0` is useful.
+
+Current contract model files:
+
+```text
+app/models/order.py
+app/models/inventory.py
+app/models/invoices.py
+app/models/notifications.py
+app/models/idempotency_keys.py
+app/models/processing_queue.py
+app/models/orders_request.py
+```
+
+Validation boundary pattern:
+
+```text
+load JSON
+-> validate with Pydantic model / RootModel
+-> return plain dict/list to current service code
+
+update domain data
+-> validate before save
+-> save validated data back to JSON
+```
+
+Not included:
+
+```text
+- repository/adapter implementation
+- dependency injection rewrite
+- full pipeline conversion to Pydantic objects
+- stale queue / orphaned order handling
+- retry/backoff
+- DLQ
+```
+
 ## Next Versions
 
 Planned next steps:
 
-- `v0.5.9` - contract models foundation
 - `v0.6.0` - repository / adapter foundation
 - `v0.6.1` - failure handling
 - `v0.6.2` - retry/backoff simulation

@@ -23,6 +23,7 @@ def create_invoice_items_snapshot(order):
                 "name": product["name"],
                 "quantity": quantity,
                 "unit_price": product["price"],
+                "line_total": product["price"] * quantity,
             }
         )
 
