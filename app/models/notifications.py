@@ -11,7 +11,7 @@ class Notification(BaseModel):
     notification_id: str
     order_id: str
     customer_id: str
-    channel: str
+    channel: Literal["email"] = "email"
     type: str
     status: Literal["PENDING", "SENT", "FAILED"] = "PENDING"
     message: str = Field(default="", max_length=1000)

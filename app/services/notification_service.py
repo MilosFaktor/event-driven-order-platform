@@ -1,4 +1,5 @@
 from app.core.logging_config import get_logger
+from app.models.notifications import Notifications
 from app.storage import json_storage
 
 NOTIFICATIONS_PATH = json_storage.STORAGE_PATHS["notifications"]
@@ -32,8 +33,22 @@ def send_notification(order):
 
 
 def get_notifications():
-    return json_storage.load_json(NOTIFICATIONS_PATH)
+    raw_notifications = json_storage.load_json(NOTIFICATIONS_PATH)
+    logger.debug("notifications_loaded count=%s", len(raw_notifications))
+
+    validated_notifications = Notifications.model_validate(raw_notifications)
+    logger.debug(
+        "notifications_validated_on_load count=%s", len(validated_notifications.root)
+    )
+
+    return validated_notifications.model_dump()
 
 
 def save_notifications(notifications):
-    json_storage.save_json(NOTIFICATIONS_PATH, notifications)
+    validated_notifications = Notifications.model_validate(notifications)
+    logger.debug(
+        "notifications_validated_before_save count=%s",
+        len(validated_notifications.root),
+    )
+
+    json_storage.save_json(NOTIFICATIONS_PATH, validated_notifications.model_dump())
