@@ -18,12 +18,11 @@ class InvoiceItem(BaseModel):
     sku: str
     name: str
     quantity: int = Field(gt=0)
-    unit_price: int = Field(gt=0)
-    # line_total is computed field so i need to change my business logic
+    unit_price: float = Field(gt=0)
 
     @computed_field  # type: ignore[misc]
     @property
-    def line_total(self) -> int:
+    def line_total(self) -> float:
         return self.quantity * self.unit_price
 
     @field_validator("sku")
