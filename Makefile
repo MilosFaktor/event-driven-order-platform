@@ -1,7 +1,7 @@
 .PHONY: check format lint run api api-create-order-1 api-create-order-2 \
 	api-get-orders api-get-idem-keys api-get-inventory worker api-get-q \
 	worker-process-next sandbox api-get-ntfs api-get-invoices storage-reset \
-	api-local api-prod worker-local worker-prod
+	api-local api-prod worker-local worker-prod loc-app
 
 check:
 	uv run ruff check .
@@ -12,6 +12,9 @@ format:
 lint:
 	uv run ruff check . --fix
 	uv run ruff format .
+
+loc-app:
+	npx cloc app
 
 run:
 	uv run python -m app.main

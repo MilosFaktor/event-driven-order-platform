@@ -80,6 +80,8 @@ def release_order_inventory(order):
         sku = item["sku"]
         quantity = item["quantity"]
         release_reserved_inventory(sku, quantity)
+
+    order["steps"]["inventory"] = "RELEASED"
     logger.info("inventory_release_finished order_id=%s", order["order_id"])
 
 
@@ -105,6 +107,8 @@ def finalize_inventory_sale(order):
         sku = item["sku"]
         quantity = item["quantity"]
         inventory = mark_inventory_as_sold(inventory, sku, quantity)
+
+    order["steps"]["inventory"] = "FINALIZED"
 
     save_inventory(inventory)
     logger.info("inventory_sale_finalized order_id=%s", order["order_id"])
