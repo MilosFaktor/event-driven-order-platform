@@ -1,4 +1,5 @@
 from app.core.logging_config import get_logger
+from app.models.inventory import Inventory
 from app.storage import json_storage
 
 INVENTORY_PATH = json_storage.STORAGE_PATHS["inventory"]
@@ -46,13 +47,15 @@ def reserve_inventory(order):
         quantity = item["quantity"]
         if has_available_stock(inventory, sku, quantity):
             reserve_inventory_item(inventory, order, sku, quantity)
-            save_inventory(inventory)
 
         else:
             fail_inventory_reservation(inventory, order, sku)  # else fail
             break  # potential problem to solve what happens if stock is available for many items
             # and missing only for 1 item
             # solution: checks can be done in the future before placing item into cart
+
+    save_inventory(inventory)
+
     if order["steps"]["inventory"] == "RESERVED":
         logger.info("inventory_reserved order_id=%s", order["order_id"])
 
@@ -77,14 +80,15 @@ def release_order_inventory(order):
         sku = item["sku"]
         quantity = item["quantity"]
         release_reserved_inventory(sku, quantity)
+
+    order["steps"]["inventory"] = "RELEASED"
     logger.info("inventory_release_finished order_id=%s", order["order_id"])
 
 
-def mark_inventory_as_sold(sku, quantity):
-    inventory = get_inventory()
+def mark_inventory_as_sold(inventory, sku, quantity):
     inventory[sku]["reserved_stock"] -= quantity
     inventory[sku]["sold_stock"] += quantity
-    save_inventory(inventory)
+
     logger.debug(
         "inventory_item_sold sku=%s quantity=%s reserved_stock=%s sold_stock=%s",
         sku,
@@ -92,20 +96,38 @@ def mark_inventory_as_sold(sku, quantity):
         inventory[sku]["reserved_stock"],
         inventory[sku]["sold_stock"],
     )
+    return inventory
 
 
 def finalize_inventory_sale(order):
     logger.debug("inventory_sale_finalization_started order_id=%s", order["order_id"])
+    inventory = get_inventory()
+
     for item in order["items"]:
         sku = item["sku"]
         quantity = item["quantity"]
-        mark_inventory_as_sold(sku, quantity)
+        inventory = mark_inventory_as_sold(inventory, sku, quantity)
+
+    order["steps"]["inventory"] = "FINALIZED"
+
+    save_inventory(inventory)
     logger.info("inventory_sale_finalized order_id=%s", order["order_id"])
 
 
 def get_inventory():
-    return json_storage.load_json(INVENTORY_PATH)
+    raw_inventory = json_storage.load_json(INVENTORY_PATH)
+    logger.debug("inventory_loaded count=%s", len(raw_inventory))
+
+    validated_inventory = Inventory.model_validate(raw_inventory)
+    logger.debug("inventory_validated_on_load count=%s", len(validated_inventory.root))
+
+    return validated_inventory.model_dump()
 
 
 def save_inventory(inventory):
-    json_storage.save_json(INVENTORY_PATH, inventory)
+    validated_inventory = Inventory.model_validate(inventory)
+    logger.debug(
+        "inventory_validated_before_save count=%s", len(validated_inventory.root)
+    )
+
+    json_storage.save_json(INVENTORY_PATH, validated_inventory.model_dump())

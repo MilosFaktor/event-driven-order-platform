@@ -1,4 +1,5 @@
 from app.core.logging_config import get_logger
+from app.models.invoices import Invoices
 from app.services.inventory_service import get_inventory
 from app.storage import json_storage
 
@@ -9,11 +10,12 @@ logger = get_logger("invoice.service")
 
 def create_invoice_items_snapshot(order):
     invoice_items = []
+    inventory = get_inventory()
 
     for item in order["items"]:
         sku = item["sku"]
         quantity = item["quantity"]
-        product = get_inventory()[sku]
+        product = inventory[sku]
 
         invoice_items.append(
             {
@@ -53,8 +55,19 @@ def create_invoice(order):
 
 
 def get_invoices():
-    return json_storage.load_json(INVOICES_PATH)
+    raw_invoices = json_storage.load_json(INVOICES_PATH)
+    logger.debug("invoices_loaded count=%s", len(raw_invoices))
+
+    validated_invoices = Invoices.model_validate(raw_invoices)
+    logger.debug("invoices_validated_on_load count=%s", len(validated_invoices.root))
+
+    return validated_invoices.model_dump()
 
 
 def save_invoices(invoices):
-    json_storage.save_json(INVOICES_PATH, invoices)
+    validated_invoices = Invoices.model_validate(invoices)
+    logger.debug(
+        "invoices_validated_before_save count=%s", len(validated_invoices.root)
+    )
+
+    json_storage.save_json(INVOICES_PATH, validated_invoices.model_dump())

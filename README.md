@@ -18,7 +18,7 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current version: `v0.5.8`
+Current version: `v0.5.9`
 
 The current local version includes:
 
@@ -33,6 +33,8 @@ The current local version includes:
 - cleaner service boundaries for order storage, idempotency, and order processing
 - architecture and concept docs for the local system model
 - local order pipeline diagram
+- Pydantic contract models for stored domain records
+- validation at JSON storage boundaries for orders, inventory, invoices, notifications, idempotency keys, and the processing queue
 - order processing pipeline:
   - reserve inventory
   - capture mock payment
@@ -224,7 +226,6 @@ GitHub Actions currently runs Ruff checks, and the `main` branch is protected so
 
 Next planned versions:
 
-- `v0.5.9` - contract models foundation
 - `v0.6.0` - repository / adapter foundation
 - `v0.6.1` - failure handling
 - `v0.6.2` - retry/backoff simulation
