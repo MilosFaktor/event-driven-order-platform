@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Header, HTTPException, Response
 
 from app.core.logging_config import configure_logging_api, get_logger
+from app.models.order import OrderItem
 from app.models.orders_request import CreateOrderRequest
 from app.services.idempotency_service import (
     get_idempotency_keys,
@@ -9,16 +10,12 @@ from app.services.idempotency_service import (
 from app.services.inventory_service import get_inventory
 from app.services.invoice_service import get_invoices
 from app.services.notification_service import get_notifications
-from app.services.order_service import (
-    create_order,
-    generate_order_id,
-    get_order,
-    get_orders,
-)
+from app.services.order_service import OrderService
 from app.services.queue_service import enqueue_order, get_processing_queue
 from app.services.worker_service import process_next_order
 
 app = FastAPI()
+order_service = OrderService()
 
 configure_logging_api()
 logger = get_logger("api")
@@ -49,7 +46,7 @@ def create_new_order(
     # idempotency check
     if existing_order_id is not None:
         logger.info("idempotent_order_request_matched order_id=%s", existing_order_id)
-        existing_order = get_order(existing_order_id)
+        existing_order = order_service.get_order(existing_order_id)
 
         if existing_order is None:
             logger.error(
@@ -62,20 +59,22 @@ def create_new_order(
         response.status_code = 200
         logger.info(
             "create_order_response_returned order_id=%s status=%s http_status=200",
-            existing_order["order_id"],
-            existing_order["status"],
+            existing_order.order_id,
+            existing_order.status,
         )
         return {
-            "order_id": existing_order["order_id"],
-            "status": existing_order["status"],
+            "order_id": existing_order.order_id,
+            "status": existing_order.status,
         }
 
-    order_id = generate_order_id()
-    create_order(
+    order_id = order_service.generate_order_id()
+    order_service.create_order(
         idempotency_key=idempotency_key,
         order_id=order_id,
         customer_id=request.customer_id,
-        items=[item.model_dump() for item in request.items],
+        items=[
+            OrderItem(sku=item.sku, quantity=item.quantity) for item in request.items
+        ],
         currency=request.currency,
     )
     enqueue_order(order_id)
@@ -90,13 +89,13 @@ def create_new_order(
 
 @app.get("/v1/orders")
 def read_orders():
-    return get_orders()
+    return order_service.get_orders()
 
 
 @app.get("/v1/orders/{order_id}")
 def read_order(order_id: str):
     logger.info("read_order_request_received order_id=%s", order_id)
-    order = get_order(order_id)
+    order = order_service.get_order(order_id)
     if order is None:
         logger.warning("read_order_not_found order_id=%s", order_id)
         raise HTTPException(status_code=404, detail="Order not found")
@@ -115,8 +114,8 @@ def worker_process_next_order():
         raise HTTPException(status_code=200, detail="No orders to process")
     logger.info(
         "manual_worker_process_next_finished order_id=%s status=%s",
-        result["order_id"],
-        result["status"],
+        result.order_id,
+        result.status,
     )
     return result
 

@@ -12,9 +12,9 @@ def create_invoice_items_snapshot(order):
     invoice_items = []
     inventory = get_inventory()
 
-    for item in order["items"]:
-        sku = item["sku"]
-        quantity = item["quantity"]
+    for item in order.items:
+        sku = item.sku
+        quantity = item.quantity
         product = inventory[sku]
 
         invoice_items.append(
@@ -32,22 +32,22 @@ def create_invoice_items_snapshot(order):
 
 def create_invoice(order):
     invoices = get_invoices()
-    invoice_id = f"inv_{order['order_id']}"
+    invoice_id = f"inv_{order.order_id}"
     invoice_items = create_invoice_items_snapshot(order)
 
     invoices[invoice_id] = {
         "invoice_id": invoice_id,
-        "order_id": order["order_id"],
-        "customer_id": order["customer_id"],
+        "order_id": order.order_id,
+        "customer_id": order.customer_id,
         "items": invoice_items,
-        "currency": order["currency"],
+        "currency": order.currency,
         "status": "CREATED",
     }
 
     save_invoices(invoices)
     logger.info(
         "invoice_created order_id=%s invoice_id=%s",
-        order["order_id"],
+        order.order_id,
         invoice_id,
     )
 

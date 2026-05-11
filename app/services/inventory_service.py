@@ -14,10 +14,10 @@ def has_available_stock(inventory, sku, quantity):
 def reserve_inventory_item(inventory, order, sku, quantity):
     inventory[sku]["available_stock"] -= quantity
     inventory[sku]["reserved_stock"] += quantity
-    order["steps"]["inventory"] = "RESERVED"
+    order.steps.inventory = "RESERVED"
     logger.debug(
         "inventory_item_reserved order_id=%s sku=%s quantity=%s available_stock=%s reserved_stock=%s",
-        order["order_id"],
+        order.order_id,
         sku,
         quantity,
         inventory[sku]["available_stock"],
@@ -26,25 +26,25 @@ def reserve_inventory_item(inventory, order, sku, quantity):
 
 
 def fail_inventory_reservation(inventory, order, sku):
-    order["status"] = "FAILED"
-    order["failure_reason"] = f"Insufficient stock for {inventory[sku]['name']}"
-    order["steps"]["inventory"] = "FAILED"
+    order.status = "FAILED"
+    order.failure_reason = f"Insufficient stock for {inventory[sku]['name']}"
+    order.steps.inventory = "FAILED"
     logger.warning(
         "inventory_reservation_failed order_id=%s sku=%s available_stock=%s failure_reason=%s",
-        order["order_id"],
+        order.order_id,
         sku,
         inventory[sku]["available_stock"],
-        order["failure_reason"],
+        order.failure_reason,
     )
 
 
 def reserve_inventory(order):
-    logger.debug("inventory_reservation_started order_id=%s", order["order_id"])
+    logger.debug("inventory_reservation_started order_id=%s", order.order_id)
     inventory = get_inventory()
 
-    for item in order["items"]:
-        sku = item["sku"]
-        quantity = item["quantity"]
+    for item in order.items:
+        sku = item.sku
+        quantity = item.quantity
         if has_available_stock(inventory, sku, quantity):
             reserve_inventory_item(inventory, order, sku, quantity)
 
@@ -56,8 +56,8 @@ def reserve_inventory(order):
 
     save_inventory(inventory)
 
-    if order["steps"]["inventory"] == "RESERVED":
-        logger.info("inventory_reserved order_id=%s", order["order_id"])
+    if order.steps.inventory == "RESERVED":
+        logger.info("inventory_reserved order_id=%s", order.order_id)
 
 
 def release_reserved_inventory(sku, quantity):
@@ -75,14 +75,14 @@ def release_reserved_inventory(sku, quantity):
 
 
 def release_order_inventory(order):
-    logger.info("inventory_release_started order_id=%s", order["order_id"])
-    for item in order["items"]:
-        sku = item["sku"]
-        quantity = item["quantity"]
+    logger.info("inventory_release_started order_id=%s", order.order_id)
+    for item in order.items:
+        sku = item.sku
+        quantity = item.quantity
         release_reserved_inventory(sku, quantity)
 
-    order["steps"]["inventory"] = "RELEASED"
-    logger.info("inventory_release_finished order_id=%s", order["order_id"])
+    order.steps.inventory = "RELEASED"
+    logger.info("inventory_release_finished order_id=%s", order.order_id)
 
 
 def mark_inventory_as_sold(inventory, sku, quantity):
@@ -100,18 +100,18 @@ def mark_inventory_as_sold(inventory, sku, quantity):
 
 
 def finalize_inventory_sale(order):
-    logger.debug("inventory_sale_finalization_started order_id=%s", order["order_id"])
+    logger.debug("inventory_sale_finalization_started order_id=%s", order.order_id)
     inventory = get_inventory()
 
-    for item in order["items"]:
-        sku = item["sku"]
-        quantity = item["quantity"]
+    for item in order.items:
+        sku = item.sku
+        quantity = item.quantity
         inventory = mark_inventory_as_sold(inventory, sku, quantity)
 
-    order["steps"]["inventory"] = "FINALIZED"
+    order.steps.inventory = "FINALIZED"
 
     save_inventory(inventory)
-    logger.info("inventory_sale_finalized order_id=%s", order["order_id"])
+    logger.info("inventory_sale_finalized order_id=%s", order.order_id)
 
 
 def get_inventory():
