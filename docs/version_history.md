@@ -427,6 +427,29 @@ Not included:
 - DLQ
 ```
 
+## Current Work - v0.6.0 Repository / Adapter Foundation
+
+Goal: introduce a storage boundary before failure handling, retries, and broader tests.
+
+Current direction:
+
+- Prove the repository/adapter boundary on the order slice first.
+- Keep API and worker code talking through services/pipeline code.
+- Move order JSON load/save behind `JsonOrderAdapter`.
+- Move order data access behind `OrderRepository`.
+- Let order business logic work with `Order` Pydantic objects instead of raw dictionaries.
+- Keep non-order domains on their current JSON validation paths until the order slice is stable.
+
+Intentionally not expanding yet:
+
+```text
+- repositories/adapters for every JSON-backed domain
+- heavy dependency injection
+- failure handling
+- retry/backoff
+- DLQ
+```
+
 ## Next Versions
 
 Planned next steps:

@@ -38,6 +38,8 @@ Client
 | Worker | Poll/dequeue work and trigger one processing attempt |
 | Pipeline | Coordinate business steps for an order |
 | Services | Own focused business behavior such as inventory, payment, invoices, notifications |
+| Repository | Provide domain data access behind service/pipeline code |
+| Adapter | Hide physical storage details and serialization |
 | Storage | Persist local state in JSON files |
 | Logging | Explain runtime behavior for humans |
 
@@ -54,16 +56,38 @@ If the two disagree, storage is the current source of truth.
 
 ## Current Intentional Simplicity
 
+The project is starting to introduce:
+
+- an order repository
+- an order JSON adapter
+- Pydantic `Order` objects inside the order business slice
+
 The project does not yet have:
 
-- repository/adapter boundaries
+- repository/adapter boundaries across every domain
 - broad dependency injection
 - retry/backoff
 - DLQ behavior
-- full stored-record contracts
 - AWS infrastructure
 
 Those are planned later, after the local model is understandable.
+
+## Repository / Adapter Direction
+
+The repository/adapter boundary is being introduced gradually, starting with orders.
+
+```text
+API / worker
+-> service / pipeline
+-> order repository
+-> JSON order adapter
+-> JSON storage helper
+-> data/orders.json
+```
+
+The goal is for order business logic to work with `Order` Pydantic objects while the adapter owns JSON serialization and validation.
+
+Other domains can keep their current JSON validation paths until the order slice proves the pattern.
 
 ## Local To AWS Mapping
 
@@ -103,3 +127,4 @@ For detailed concepts, see:
 - `docs/concepts/logging.md`
 - `docs/concepts/configuration.md`
 - `docs/concepts/failure-handling.md`
+- `docs/concepts/repository-adapter.md`
