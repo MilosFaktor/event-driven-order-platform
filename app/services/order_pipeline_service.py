@@ -1,9 +1,5 @@
 from app.core.logging_config import get_logger
-from app.services.inventory_service import (
-    finalize_inventory_sale,
-    release_order_inventory,
-    reserve_inventory,
-)
+from app.services.inventory_service import InventoryService
 from app.services.invoice_service import create_invoice
 from app.services.notification_service import send_notification
 from app.services.order_service import OrderService
@@ -12,6 +8,7 @@ from app.services.payment_service import is_payment_captured, payment_captured_m
 logger = get_logger("orders.pipeline")
 
 order_service = OrderService()
+inventory_service = InventoryService()
 
 
 def mark_order_status(order, status):
@@ -58,7 +55,7 @@ def process_order(order_id):
     order_service.log_order_state(order)
 
     logger.info("inventory_reservation_started order_id=%s", order_id)
-    reserve_inventory(order)
+    inventory_service.reserve_inventory(order)
     order_service.save_order(order)
     order_service.log_order_state(order)
 
@@ -73,7 +70,7 @@ def process_order(order_id):
 
     if is_payment_captured(order):
         logger.info("inventory_sale_finalization_started order_id=%s", order_id)
-        finalize_inventory_sale(order)
+        inventory_service.finalize_inventory_sale(order)
 
         order_service.save_order(order)
         order_service.log_order_state(order)
@@ -82,7 +79,7 @@ def process_order(order_id):
         mark_order_status(order, "FAILED")
 
         logger.info("inventory_release_started order_id=%s", order_id)
-        release_order_inventory(order)
+        inventory_service.release_order_inventory(order)
 
         order_service.save_order(order)
         order_service.log_order_state(order)
