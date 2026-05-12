@@ -1,5 +1,6 @@
 from app.adapters.json_inventory_adapter import JsonInventoryAdapter
 from app.core.logging_config import get_logger
+from app.models.inventory import Inventory
 
 logger = get_logger("inventory.repo")
 
