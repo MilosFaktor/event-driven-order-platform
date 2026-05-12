@@ -41,7 +41,7 @@ class InventoryService:
 
     def reserve_inventory(self, order):
         logger.debug("inventory_reservation_started order_id=%s", order.order_id)
-        inventory = self.repo.get_inventory()
+        inventory = self.repo.list_inventory()
 
         for item in order.items:
             sku = item.sku
@@ -60,11 +60,10 @@ class InventoryService:
         if order.steps.inventory == "RESERVED":
             logger.info("inventory_reserved order_id=%s", order.order_id)
 
-    def release_reserved_inventory(self, sku, quantity):
-        inventory = self.repo.get_inventory()
+    def release_reserved_inventory(self, inventory, sku, quantity):
         inventory.root[sku].reserved_stock -= quantity
         inventory.root[sku].available_stock += quantity
-        self.repo.save_inventory(inventory)
+
         logger.debug(
             "inventory_item_released sku=%s quantity=%s available_stock=%s reserved_stock=%s",
             sku,
@@ -74,11 +73,14 @@ class InventoryService:
         )
 
     def release_order_inventory(self, order):
+        inventory = self.repo.list_inventory()
         logger.info("inventory_release_started order_id=%s", order.order_id)
         for item in order.items:
             sku = item.sku
             quantity = item.quantity
-            self.release_reserved_inventory(sku, quantity)
+            self.release_reserved_inventory(inventory, sku, quantity)
+
+        self.repo.save_inventory(inventory)
 
         order.steps.inventory = "RELEASED"
         logger.info("inventory_release_finished order_id=%s", order.order_id)
@@ -98,7 +100,7 @@ class InventoryService:
 
     def finalize_inventory_sale(self, order):
         logger.debug("inventory_sale_finalization_started order_id=%s", order.order_id)
-        inventory = self.repo.get_inventory()
+        inventory = self.repo.list_inventory()
 
         for item in order.items:
             sku = item.sku
@@ -110,5 +112,5 @@ class InventoryService:
         self.repo.save_inventory(inventory)
         logger.info("inventory_sale_finalized order_id=%s", order.order_id)
 
-    def get_inventory(self):
-        return self.repo.get_inventory()
+    def list_inventory(self):
+        return self.repo.list_inventory()

@@ -131,7 +131,7 @@ def read_idempotency_keys():
 
 @app.get("/v1/debug/inventory")
 def read_inventory():
-    return inventory_service.get_inventory()
+    return inventory_service.list_inventory()
 
 
 @app.get("/v1/debug/processing-queue")

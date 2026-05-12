@@ -12,7 +12,7 @@ inventory_repo = InventoryRepository()
 
 def create_invoice_items_snapshot(order):
     invoice_items = []
-    inventory = inventory_repo.get_inventory()
+    inventory = inventory_repo.list_inventory()
 
     for item in order.items:
         sku = item.sku

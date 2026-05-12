@@ -12,7 +12,7 @@ class InventoryRepository:
         else:
             self.adapter = adapter
 
-    def get_inventory(self) -> Inventory:
+    def list_inventory(self) -> Inventory:
         inventory = self.adapter.load_inventory()
         logger.debug("inventory_loaded count=%s", len(inventory.root))
 
