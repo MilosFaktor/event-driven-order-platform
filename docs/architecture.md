@@ -56,11 +56,14 @@ If the two disagree, storage is the current source of truth.
 
 ## Current Intentional Simplicity
 
-The project is starting to introduce:
+The project is gradually introducing:
 
 - an order repository
 - an order JSON adapter
+- an inventory repository
+- an inventory JSON adapter
 - Pydantic `Order` objects inside the order business slice
+- validated `Inventory` objects behind inventory service/repository boundaries
 
 The project does not yet have:
 
@@ -74,20 +77,20 @@ Those are planned later, after the local model is understandable.
 
 ## Repository / Adapter Direction
 
-The repository/adapter boundary is being introduced gradually, starting with orders.
+The repository/adapter boundary is being introduced gradually, one storage domain at a time.
 
 ```text
 API / worker
 -> service / pipeline
--> order repository
--> JSON order adapter
+-> repository
+-> JSON adapter
 -> JSON storage helper
--> data/orders.json
+-> data/*.json
 ```
 
-The goal is for order business logic to work with `Order` Pydantic objects while the adapter owns JSON serialization and validation.
+The goal is for business logic to work with validated Pydantic objects while adapters own JSON serialization and validation.
 
-Other domains can keep their current JSON validation paths until the order slice proves the pattern.
+The first slices are orders and inventory. Remaining JSON-backed domains can move behind repositories/adapters later.
 
 ## Local To AWS Mapping
 
