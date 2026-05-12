@@ -1,29 +1,31 @@
 from app.core.logging_config import get_logger
 from app.models.invoices import Invoices
-from app.services.inventory_service import get_inventory
+from app.repositories.inventory_repository import InventoryRepository
 from app.storage import json_storage
 
 INVOICES_PATH = json_storage.STORAGE_PATHS["invoices"]
 
 logger = get_logger("invoice.service")
 
+inventory_repo = InventoryRepository()
+
 
 def create_invoice_items_snapshot(order):
     invoice_items = []
-    inventory = get_inventory()
+    inventory = inventory_repo.list_inventory()
 
     for item in order.items:
         sku = item.sku
         quantity = item.quantity
-        product = inventory[sku]
+        product = inventory.root[sku]
 
         invoice_items.append(
             {
                 "sku": sku,
-                "name": product["name"],
+                "name": product.name,
                 "quantity": quantity,
-                "unit_price": product["price"],
-                "line_total": product["price"] * quantity,
+                "unit_price": product.price,
+                "line_total": product.price * quantity,
             }
         )
 

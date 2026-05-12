@@ -1,133 +1,116 @@
 from app.core.logging_config import get_logger
-from app.models.inventory import Inventory
-from app.storage import json_storage
-
-INVENTORY_PATH = json_storage.STORAGE_PATHS["inventory"]
+from app.repositories.inventory_repository import InventoryRepository
 
 logger = get_logger("inventory.service")
 
 
-def has_available_stock(inventory, sku, quantity):
-    return inventory[sku]["available_stock"] >= quantity
-
-
-def reserve_inventory_item(inventory, order, sku, quantity):
-    inventory[sku]["available_stock"] -= quantity
-    inventory[sku]["reserved_stock"] += quantity
-    order.steps.inventory = "RESERVED"
-    logger.debug(
-        "inventory_item_reserved order_id=%s sku=%s quantity=%s available_stock=%s reserved_stock=%s",
-        order.order_id,
-        sku,
-        quantity,
-        inventory[sku]["available_stock"],
-        inventory[sku]["reserved_stock"],
-    )
-
-
-def fail_inventory_reservation(inventory, order, sku):
-    order.status = "FAILED"
-    order.failure_reason = f"Insufficient stock for {inventory[sku]['name']}"
-    order.steps.inventory = "FAILED"
-    logger.warning(
-        "inventory_reservation_failed order_id=%s sku=%s available_stock=%s failure_reason=%s",
-        order.order_id,
-        sku,
-        inventory[sku]["available_stock"],
-        order.failure_reason,
-    )
-
-
-def reserve_inventory(order):
-    logger.debug("inventory_reservation_started order_id=%s", order.order_id)
-    inventory = get_inventory()
-
-    for item in order.items:
-        sku = item.sku
-        quantity = item.quantity
-        if has_available_stock(inventory, sku, quantity):
-            reserve_inventory_item(inventory, order, sku, quantity)
-
+class InventoryService:
+    def __init__(self, repo: InventoryRepository | None = None):
+        if repo is None:
+            self.repo = InventoryRepository()
         else:
-            fail_inventory_reservation(inventory, order, sku)  # else fail
-            break  # potential problem to solve what happens if stock is available for many items
-            # and missing only for 1 item
-            # solution: checks can be done in the future before placing item into cart
+            self.repo = repo
 
-    save_inventory(inventory)
+    def has_available_stock(self, inventory, sku, quantity):
+        return inventory.root[sku].available_stock >= quantity
 
-    if order.steps.inventory == "RESERVED":
-        logger.info("inventory_reserved order_id=%s", order.order_id)
+    def reserve_inventory_item(self, inventory, order, sku, quantity):
+        inventory.root[sku].available_stock -= quantity
+        inventory.root[sku].reserved_stock += quantity
+        order.steps.inventory = "RESERVED"
+        logger.debug(
+            "inventory_item_reserved order_id=%s sku=%s quantity=%s available_stock=%s reserved_stock=%s",
+            order.order_id,
+            sku,
+            quantity,
+            inventory.root[sku].available_stock,
+            inventory.root[sku].reserved_stock,
+        )
 
+    def fail_inventory_reservation(self, inventory, order, sku):
+        order.status = "FAILED"
+        order.failure_reason = f"Insufficient stock for {inventory.root[sku].name}"
+        order.steps.inventory = "FAILED"
+        logger.warning(
+            "inventory_reservation_failed order_id=%s sku=%s available_stock=%s failure_reason=%s",
+            order.order_id,
+            sku,
+            inventory.root[sku].available_stock,
+            order.failure_reason,
+        )
 
-def release_reserved_inventory(sku, quantity):
-    inventory = get_inventory()
-    inventory[sku]["reserved_stock"] -= quantity
-    inventory[sku]["available_stock"] += quantity
-    save_inventory(inventory)
-    logger.debug(
-        "inventory_item_released sku=%s quantity=%s available_stock=%s reserved_stock=%s",
-        sku,
-        quantity,
-        inventory[sku]["available_stock"],
-        inventory[sku]["reserved_stock"],
-    )
+    def reserve_inventory(self, order):
+        logger.debug("inventory_reservation_started order_id=%s", order.order_id)
+        inventory = self.repo.list_inventory()
 
+        for item in order.items:
+            sku = item.sku
+            quantity = item.quantity
+            if self.has_available_stock(inventory, sku, quantity):
+                self.reserve_inventory_item(inventory, order, sku, quantity)
 
-def release_order_inventory(order):
-    logger.info("inventory_release_started order_id=%s", order.order_id)
-    for item in order.items:
-        sku = item.sku
-        quantity = item.quantity
-        release_reserved_inventory(sku, quantity)
+            else:
+                self.fail_inventory_reservation(inventory, order, sku)  # else fail
+                break  # potential problem to solve what happens if stock is available for many items
+                # and missing only for 1 item
+                # solution: checks can be done in the future before placing item into cart
 
-    order.steps.inventory = "RELEASED"
-    logger.info("inventory_release_finished order_id=%s", order.order_id)
+        self.repo.save_inventory(inventory)
 
+        if order.steps.inventory == "RESERVED":
+            logger.info("inventory_reserved order_id=%s", order.order_id)
 
-def mark_inventory_as_sold(inventory, sku, quantity):
-    inventory[sku]["reserved_stock"] -= quantity
-    inventory[sku]["sold_stock"] += quantity
+    def release_reserved_inventory(self, inventory, sku, quantity):
+        inventory.root[sku].reserved_stock -= quantity
+        inventory.root[sku].available_stock += quantity
 
-    logger.debug(
-        "inventory_item_sold sku=%s quantity=%s reserved_stock=%s sold_stock=%s",
-        sku,
-        quantity,
-        inventory[sku]["reserved_stock"],
-        inventory[sku]["sold_stock"],
-    )
-    return inventory
+        logger.debug(
+            "inventory_item_released sku=%s quantity=%s available_stock=%s reserved_stock=%s",
+            sku,
+            quantity,
+            inventory.root[sku].available_stock,
+            inventory.root[sku].reserved_stock,
+        )
 
+    def release_order_inventory(self, order):
+        inventory = self.repo.list_inventory()
+        logger.info("inventory_release_started order_id=%s", order.order_id)
+        for item in order.items:
+            sku = item.sku
+            quantity = item.quantity
+            self.release_reserved_inventory(inventory, sku, quantity)
 
-def finalize_inventory_sale(order):
-    logger.debug("inventory_sale_finalization_started order_id=%s", order.order_id)
-    inventory = get_inventory()
+        self.repo.save_inventory(inventory)
 
-    for item in order.items:
-        sku = item.sku
-        quantity = item.quantity
-        inventory = mark_inventory_as_sold(inventory, sku, quantity)
+        order.steps.inventory = "RELEASED"
+        logger.info("inventory_release_finished order_id=%s", order.order_id)
 
-    order.steps.inventory = "FINALIZED"
+    def mark_inventory_as_sold(self, inventory, sku, quantity):
+        inventory.root[sku].reserved_stock -= quantity
+        inventory.root[sku].sold_stock += quantity
 
-    save_inventory(inventory)
-    logger.info("inventory_sale_finalized order_id=%s", order.order_id)
+        logger.debug(
+            "inventory_item_sold sku=%s quantity=%s reserved_stock=%s sold_stock=%s",
+            sku,
+            quantity,
+            inventory.root[sku].reserved_stock,
+            inventory.root[sku].sold_stock,
+        )
+        return inventory
 
+    def finalize_inventory_sale(self, order):
+        logger.debug("inventory_sale_finalization_started order_id=%s", order.order_id)
+        inventory = self.repo.list_inventory()
 
-def get_inventory():
-    raw_inventory = json_storage.load_json(INVENTORY_PATH)
-    logger.debug("inventory_loaded count=%s", len(raw_inventory))
+        for item in order.items:
+            sku = item.sku
+            quantity = item.quantity
+            inventory = self.mark_inventory_as_sold(inventory, sku, quantity)
 
-    validated_inventory = Inventory.model_validate(raw_inventory)
-    logger.debug("inventory_validated_on_load count=%s", len(validated_inventory.root))
+        order.steps.inventory = "FINALIZED"
 
-    return validated_inventory.model_dump()
+        self.repo.save_inventory(inventory)
+        logger.info("inventory_sale_finalized order_id=%s", order.order_id)
 
-
-def save_inventory(inventory):
-    validated_inventory = Inventory.model_validate(inventory)
-    logger.debug(
-        "inventory_validated_before_save count=%s", len(validated_inventory.root)
-    )
-
-    json_storage.save_json(INVENTORY_PATH, validated_inventory.model_dump())
+    def list_inventory(self):
+        return self.repo.list_inventory()

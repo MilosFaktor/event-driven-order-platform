@@ -7,7 +7,7 @@ from app.services.idempotency_service import (
     get_idempotency_keys,
     get_order_id_by_idempotency_key,
 )
-from app.services.inventory_service import get_inventory
+from app.services.inventory_service import InventoryService
 from app.services.invoice_service import get_invoices
 from app.services.notification_service import get_notifications
 from app.services.order_service import OrderService
@@ -16,6 +16,7 @@ from app.services.worker_service import process_next_order
 
 app = FastAPI()
 order_service = OrderService()
+inventory_service = InventoryService()
 
 configure_logging_api()
 logger = get_logger("api")
@@ -130,7 +131,7 @@ def read_idempotency_keys():
 
 @app.get("/v1/debug/inventory")
 def read_inventory():
-    return get_inventory()
+    return inventory_service.list_inventory()
 
 
 @app.get("/v1/debug/processing-queue")
