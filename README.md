@@ -18,7 +18,7 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current version: `v0.5.9`
+Current work: `v0.6.0`
 
 The current local version includes:
 
@@ -35,6 +35,8 @@ The current local version includes:
 - local order pipeline diagram
 - Pydantic contract models for stored domain records
 - validation at JSON storage boundaries for orders, inventory, invoices, notifications, idempotency keys, and the processing queue
+- repository/adapter foundation started for orders and inventory
+- order and inventory business logic moving toward validated Pydantic objects instead of repeated dict/model conversion
 - order processing pipeline:
   - reserve inventory
   - capture mock payment
@@ -49,12 +51,12 @@ Current local implementation:
 ```text
 FastAPI API
   -> creates PENDING order
-  -> stores order in JSON
+  -> stores order through service/repository/adapter boundaries
   -> writes order_id to JSON queue
 
 Worker
   -> reads queued order_id
-  -> loads order from JSON
+  -> loads order through service/repository/adapter boundaries
   -> processes business pipeline
   -> persists updated state to JSON
 ```
@@ -79,14 +81,24 @@ The current logging setup keeps separate named loggers for API, worker, and serv
 Current service split:
 
 ```text
-orders.service        -> create/load/save orders
+orders.service        -> order business operations through OrderRepository
 idempotency.service   -> idempotency key lookup/storage
 orders.pipeline       -> processing workflow
 queue.service         -> queue persistence
-inventory.service     -> inventory state changes
+inventory.service     -> inventory state changes through InventoryRepository
 payment.service       -> mock payment capture
 invoice.service       -> invoice records
 notification.service  -> notification records
+```
+
+Repository/adapter direction:
+
+```text
+service / pipeline
+-> repository
+-> JSON adapter
+-> json_storage
+-> data/*.json
 ```
 
 Local storage files:
@@ -111,6 +123,7 @@ Architecture and concept docs:
 - [Logging](docs/concepts/logging.md)
 - [Configuration](docs/concepts/configuration.md)
 - [Failure handling](docs/concepts/failure-handling.md)
+- [Repository / adapter](docs/concepts/repository-adapter.md)
 
 ## Screenshots
 

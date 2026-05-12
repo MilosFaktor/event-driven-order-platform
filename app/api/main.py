@@ -90,7 +90,7 @@ def create_new_order(
 
 @app.get("/v1/orders")
 def read_orders():
-    return order_service.get_orders()
+    return order_service.list_orders()
 
 
 @app.get("/v1/orders/{order_id}")

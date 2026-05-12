@@ -433,12 +433,19 @@ Goal: introduce a storage boundary before failure handling, retries, and broader
 
 Current direction:
 
-- Prove the repository/adapter boundary on the order slice first.
+- Prove the repository/adapter boundary one domain slice at a time.
 - Keep API and worker code talking through services/pipeline code.
 - Move order JSON load/save behind `JsonOrderAdapter`.
 - Move order data access behind `OrderRepository`.
 - Let order business logic work with `Order` Pydantic objects instead of raw dictionaries.
-- Keep non-order domains on their current JSON validation paths until the order slice is stable.
+- Move inventory JSON load/save behind `JsonInventoryAdapter`.
+- Move inventory data access behind `InventoryRepository`.
+- Keep inventory business logic working with validated `Inventory` and `InventoryItem` objects.
+- Let invoice item snapshots read validated inventory data through the inventory repository.
+- Use clearer naming:
+  - `list_*` for collection reads
+  - `get_*` for single-record lookups
+- Prefer loading collections once, mutating in memory, and saving once when processing multiple items.
 
 Intentionally not expanding yet:
 
@@ -448,6 +455,14 @@ Intentionally not expanding yet:
 - failure handling
 - retry/backoff
 - DLQ
+```
+
+Slices completed or in progress:
+
+```text
+v0.6.0 - Order Repository Adapter Slice
+v0.6.0 - Inventory Repository Adapter Slice
+v0.6.0 - Order workflow naming and object-flow cleanup
 ```
 
 ## Next Versions

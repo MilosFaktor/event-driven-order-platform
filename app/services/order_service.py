@@ -7,10 +7,26 @@ from app.services.idempotency_service import store_idempotency_key
 
 logger = get_logger("order.service")
 
-repo = OrderRepository()
+
+def build_pending_order(order_id, customer_id, items, currency) -> Order:
+    return Order(
+        order_id=order_id,
+        customer_id=customer_id,
+        items=items,
+        currency=currency,
+        status="PENDING",
+        steps=OrderSteps(),
+        failure_reason=None,
+    )
 
 
 class OrderService:
+    def __init__(self, repo: OrderRepository | None = None):
+        if repo is None:
+            self.repo = OrderRepository()
+        else:
+            self.repo = repo
+
     def log_order_state(self, order):
         steps = order.steps
         logger.debug(
@@ -24,7 +40,7 @@ class OrderService:
         )
 
     def generate_order_id(self):
-        orders = repo.get_orders()
+        orders = self.repo.list_orders()
         while True:
             order_id = f"ord_{uuid4().hex[:8]}"
             if order_id not in orders.root:
@@ -50,24 +66,9 @@ class OrderService:
 
         store_idempotency_key(idempotency_key, order_id)
 
-        orders = repo.get_orders()
+        order = build_pending_order(order_id, customer_id, items, currency)
 
-        order = Order(
-            order_id=order_id,
-            customer_id=customer_id,
-            items=items,
-            currency=currency,
-            status="PENDING",
-            steps=OrderSteps(
-                inventory="PENDING",
-                payment="PENDING",
-                invoice="PENDING",
-                notification="PENDING",
-            ),
-            failure_reason=None,
-        )
-        orders.root[order_id] = order
-        repo.save_orders(orders)
+        self.repo.save_order(order)
 
         logger.info(
             "order_created order_id=%s customer_id=%s status=PENDING",
@@ -75,11 +76,11 @@ class OrderService:
             customer_id,
         )
 
-    def get_orders(self):
-        return repo.get_orders()
+    def list_orders(self):
+        return self.repo.list_orders()
 
     def get_order(self, order_id):
-        return repo.get_order(order_id)
+        return self.repo.get_order(order_id)
 
     def save_order(self, order):
-        repo.save_order(order)
+        self.repo.save_order(order)

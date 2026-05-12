@@ -12,14 +12,14 @@ class OrderRepository:
         else:
             self.adapter = adapter
 
-    def get_orders(self) -> Orders:
+    def list_orders(self) -> Orders:
         orders = self.adapter.load_orders()
         logger.debug("orders_loaded count=%s", len(orders.root))
 
         return orders
 
     def get_order(self, order_id: str) -> Order | None:
-        orders = self.get_orders()
+        orders = self.list_orders()
         order = orders.root.get(order_id)
 
         if order is None:
@@ -38,7 +38,7 @@ class OrderRepository:
         logger.debug("orders_saved count=%s", len(orders.root))
 
     def save_order(self, order: Order) -> None:
-        orders = self.get_orders()
+        orders = self.list_orders()
         orders.root[order.order_id] = order
 
         self.save_orders(orders)
