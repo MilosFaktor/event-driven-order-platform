@@ -1,42 +1,31 @@
 from app.core.logging_config import get_logger
-from app.models.idempotency_keys import IdempotencyKeys
-from app.storage import json_storage
-
-IDEMPOTENCY_KEYS_PATH = json_storage.STORAGE_PATHS["idempotency_keys"]
+from app.repositories.idempotency_repository import IdempotencyKeysRepository
 
 logger = get_logger("idempotency.service")
 
 
-def get_idempotency_keys():
-    raw_keys = json_storage.load_json(IDEMPOTENCY_KEYS_PATH)
-    logger.debug("idempotency_keys_loaded count=%s", len(raw_keys))
+class IdempotencyKeysService:
+    def __init__(self, repo: IdempotencyKeysRepository | None = None):
+        if repo is None:
+            self.repo = IdempotencyKeysRepository()
+        else:
+            self.repo = repo
 
-    validated_keys = IdempotencyKeys.model_validate(raw_keys).root
-    logger.debug("idempotency_keys_validated_on_load count=%s", len(validated_keys))
+    def get_order_id_by_idempotency_key(self, idempotency_key):
+        idempotency_keys = self.repo.list_idempotency_keys()
+        order_id = idempotency_keys.root.get(idempotency_key)
 
-    return validated_keys
+        if order_id is None:
+            logger.debug("idempotency_key_not_found")
+        else:
+            logger.info("idempotency_key_matched order_id=%s", order_id)
 
+        return order_id
 
-def get_order_id_by_idempotency_key(idempotency_key):
-    idempotency_keys = get_idempotency_keys()
-    order_id = idempotency_keys.get(idempotency_key)
+    def list_idempotency_keys(self):
+        return self.repo.list_idempotency_keys()
 
-    if order_id is None:
-        logger.debug("idempotency_key_not_found")
-    else:
-        logger.info("idempotency_key_matched order_id=%s", order_id)
-
-    return order_id
-
-
-def store_idempotency_key(idempotency_key, order_id):
-    idempotency_keys = get_idempotency_keys()
-    idempotency_keys[idempotency_key] = order_id
-
-    validated_keys = IdempotencyKeys.model_validate(idempotency_keys)
-    logger.debug(
-        "idempotency_keys_validated_before_save count=%s", len(validated_keys.root)
-    )
-
-    json_storage.save_json(IDEMPOTENCY_KEYS_PATH, validated_keys.model_dump())
-    logger.info("idempotency_key_stored order_id=%s", order_id)
+    def save_idempotency_key(self, idempotency_key, order_id):
+        idempotency_keys = self.repo.list_idempotency_keys()
+        idempotency_keys.root[idempotency_key] = order_id
+        self.repo.save_idempotency_keys(idempotency_keys)

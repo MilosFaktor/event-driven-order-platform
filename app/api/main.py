@@ -3,10 +3,7 @@ from fastapi import FastAPI, Header, HTTPException, Response
 from app.core.logging_config import configure_logging_api, get_logger
 from app.models.order import OrderItem
 from app.models.orders_request import CreateOrderRequest
-from app.services.idempotency_service import (
-    get_idempotency_keys,
-    get_order_id_by_idempotency_key,
-)
+from app.services.idempotency_service import IdempotencyKeysService
 from app.services.inventory_service import InventoryService
 from app.services.invoice_service import get_invoices
 from app.services.notification_service import get_notifications
@@ -18,6 +15,7 @@ app = FastAPI()
 order_service = OrderService()
 inventory_service = InventoryService()
 queue_service = ProcessingQueueService()
+idempotency_service = IdempotencyKeysService()
 
 configure_logging_api()
 logger = get_logger("api")
@@ -43,7 +41,9 @@ def create_new_order(
         len(request.items),
         request.currency,
     )
-    existing_order_id = get_order_id_by_idempotency_key(idempotency_key)
+    existing_order_id = idempotency_service.get_order_id_by_idempotency_key(
+        idempotency_key
+    )
 
     # idempotency check
     if existing_order_id is not None:
@@ -127,7 +127,7 @@ def worker_process_next_order():
 
 @app.get("/v1/debug/idempotency-keys")
 def read_idempotency_keys():
-    return get_idempotency_keys()
+    return idempotency_service.list_idempotency_keys()
 
 
 @app.get("/v1/debug/inventory")
