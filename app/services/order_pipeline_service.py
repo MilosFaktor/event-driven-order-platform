@@ -1,6 +1,6 @@
 from app.core.logging_config import get_logger
 from app.services.inventory_service import InventoryService
-from app.services.invoice_service import create_invoice
+from app.services.invoice_service import InvoiceService
 from app.services.notification_service import send_notification
 from app.services.order_service import OrderService
 from app.services.payment_service import is_payment_captured, payment_captured_mock
@@ -9,6 +9,7 @@ logger = get_logger("orders.pipeline")
 
 order_service = OrderService()
 inventory_service = InventoryService()
+invoice_service = InvoiceService()
 
 
 def mark_order_status(order, status):
@@ -91,7 +92,7 @@ def process_order(order_id):
         return order
 
     logger.info("invoice_creation_started order_id=%s", order_id)
-    create_invoice(order)
+    invoice_service.create_invoice(order)
 
     mark_invoice_created(order)
     order_service.save_order(order)
