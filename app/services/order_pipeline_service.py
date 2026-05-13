@@ -1,7 +1,7 @@
 from app.core.logging_config import get_logger
 from app.services.inventory_service import InventoryService
 from app.services.invoice_service import InvoiceService
-from app.services.notification_service import send_notification
+from app.services.notification_service import NotificationService
 from app.services.order_service import OrderService
 from app.services.payment_service import is_payment_captured, payment_captured_mock
 
@@ -10,6 +10,7 @@ logger = get_logger("orders.pipeline")
 order_service = OrderService()
 inventory_service = InventoryService()
 invoice_service = InvoiceService()
+notification_service = NotificationService()
 
 
 def mark_order_status(order, status):
@@ -100,7 +101,7 @@ def process_order(order_id):
     # what happens if invoice hasn't been created / solution retry logic
 
     logger.info("notification_send_started order_id=%s", order_id)
-    send_notification(order)
+    notification_service.send_notification(order)
     mark_notification_sent(order)
     order_service.save_order(order)
     order_service.log_order_state(order)
