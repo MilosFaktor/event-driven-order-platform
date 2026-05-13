@@ -11,12 +11,13 @@ from app.services.inventory_service import InventoryService
 from app.services.invoice_service import get_invoices
 from app.services.notification_service import get_notifications
 from app.services.order_service import OrderService
-from app.services.queue_service import enqueue_order, get_processing_queue
+from app.services.queue_service import ProcessingQueueService
 from app.services.worker_service import process_next_order
 
 app = FastAPI()
 order_service = OrderService()
 inventory_service = InventoryService()
+queue_service = ProcessingQueueService()
 
 configure_logging_api()
 logger = get_logger("api")
@@ -78,7 +79,7 @@ def create_new_order(
         ],
         currency=request.currency,
     )
-    enqueue_order(order_id)
+    queue_service.enqueue_order(order_id)
     logger.info("order_created_and_enqueued order_id=%s", order_id)
     logger.info(
         "create_order_response_returned order_id=%s status=PENDING http_status=201",
@@ -136,7 +137,7 @@ def read_inventory():
 
 @app.get("/v1/debug/processing-queue")
 def read_processing_queue():
-    return get_processing_queue()
+    return queue_service.list_processing_queue()
 
 
 @app.get("/v1/debug/invoices")
