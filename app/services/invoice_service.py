@@ -1,75 +1,69 @@
 from app.core.logging_config import get_logger
-from app.models.invoices import Invoices
+from app.models.invoices import Invoice, InvoiceItem, Invoices
 from app.repositories.inventory_repository import InventoryRepository
-from app.storage import json_storage
-
-INVOICES_PATH = json_storage.STORAGE_PATHS["invoices"]
+from app.repositories.invoice_repository import InvoiceRepository
 
 logger = get_logger("invoice.service")
 
-inventory_repo = InventoryRepository()
 
+class InvoiceService:
+    def __init__(
+        self,
+        inventory_repo: InventoryRepository | None = None,
+        invoice_repo: InvoiceRepository | None = None,
+    ):
+        if inventory_repo is None:
+            self.inventory_repo = InventoryRepository()
+        else:
+            self.inventory_repo = inventory_repo
+        if invoice_repo is None:
+            self.invoice_repo = InvoiceRepository()
+        else:
+            self.invoice_repo = invoice_repo
 
-def create_invoice_items_snapshot(order):
-    invoice_items = []
-    inventory = inventory_repo.list_inventory()
+    def create_invoice_items_snapshot(self, order) -> list[InvoiceItem]:
+        invoice_items = []
+        inventory = self.inventory_repo.list_inventory()
 
-    for item in order.items:
-        sku = item.sku
-        quantity = item.quantity
-        product = inventory.root[sku]
+        for item in order.items:
+            sku = item.sku
+            quantity = item.quantity
+            product = inventory.root[sku]
 
-        invoice_items.append(
-            {
-                "sku": sku,
-                "name": product.name,
-                "quantity": quantity,
-                "unit_price": product.price,
-                "line_total": product.price * quantity,
-            }
+            invoice_items.append(
+                InvoiceItem(
+                    sku=sku,
+                    name=product.name,
+                    quantity=quantity,
+                    unit_price=product.price,
+                    line_total=product.price * quantity,
+                )
+            )
+
+        return invoice_items
+
+    def create_invoice(self, order):
+        invoices = self.invoice_repo.list_invoices()
+        invoice_id = f"inv_{order.order_id}"
+        invoice_items = self.create_invoice_items_snapshot(order)
+
+        invoices.root[invoice_id] = Invoice(
+            invoice_id=invoice_id,
+            order_id=order.order_id,
+            customer_id=order.customer_id,
+            items=invoice_items,
+            currency=order.currency,
+            status="CREATED",
         )
 
-    return invoice_items
+        self.invoice_repo.save_invoices(invoices)
+        logger.info(
+            "invoice_created order_id=%s invoice_id=%s",
+            order.order_id,
+            invoice_id,
+        )
 
+        return invoices.root[invoice_id]
 
-def create_invoice(order):
-    invoices = get_invoices()
-    invoice_id = f"inv_{order.order_id}"
-    invoice_items = create_invoice_items_snapshot(order)
-
-    invoices[invoice_id] = {
-        "invoice_id": invoice_id,
-        "order_id": order.order_id,
-        "customer_id": order.customer_id,
-        "items": invoice_items,
-        "currency": order.currency,
-        "status": "CREATED",
-    }
-
-    save_invoices(invoices)
-    logger.info(
-        "invoice_created order_id=%s invoice_id=%s",
-        order.order_id,
-        invoice_id,
-    )
-
-    return invoices[invoice_id]
-
-
-def get_invoices():
-    raw_invoices = json_storage.load_json(INVOICES_PATH)
-    logger.debug("invoices_loaded count=%s", len(raw_invoices))
-
-    validated_invoices = Invoices.model_validate(raw_invoices)
-    logger.debug("invoices_validated_on_load count=%s", len(validated_invoices.root))
-
-    return validated_invoices.model_dump()
-
-
-def save_invoices(invoices):
-    validated_invoices = Invoices.model_validate(invoices)
-    logger.debug(
-        "invoices_validated_before_save count=%s", len(validated_invoices.root)
-    )
-
-    json_storage.save_json(INVOICES_PATH, validated_invoices.model_dump())
+    def list_invoices(self) -> Invoices:
+        return self.invoice_repo.list_invoices()
