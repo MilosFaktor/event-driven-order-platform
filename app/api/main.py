@@ -6,7 +6,7 @@ from app.models.orders_request import CreateOrderRequest
 from app.services.idempotency_service import IdempotencyKeysService
 from app.services.inventory_service import InventoryService
 from app.services.invoice_service import InvoiceService
-from app.services.notification_service import get_notifications
+from app.services.notification_service import NotificationService
 from app.services.order_service import OrderService
 from app.services.queue_service import ProcessingQueueService
 from app.services.worker_service import process_next_order
@@ -17,6 +17,8 @@ inventory_service = InventoryService()
 queue_service = ProcessingQueueService()
 idempotency_service = IdempotencyKeysService()
 invoice_service = InvoiceService()
+notification_service = NotificationService()
+
 
 configure_logging_api()
 logger = get_logger("api")
@@ -148,4 +150,4 @@ def read_invoices():
 
 @app.get("/v1/debug/notifications")
 def read_notifications():
-    return get_notifications()
+    return notification_service.list_notifications()
