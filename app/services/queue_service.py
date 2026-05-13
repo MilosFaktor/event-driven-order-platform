@@ -4,34 +4,43 @@ from app.repositories.processing_queue_repository import ProcessingQueueReposito
 
 logger = get_logger("processing_queue.service")
 
-repo = ProcessingQueueRepository()
 
+class ProcessingQueueService:
+    def __init__(self, repo: ProcessingQueueRepository | None = None):
+        if repo is None:
+            self.repo = ProcessingQueueRepository()
+        else:
+            self.repo = repo
 
-def enqueue_order(order_id):
-    queue: ProcessingQueue = repo.list_processing_queue()
+    def enqueue_order(self, order_id) -> None:
+        queue: ProcessingQueue = self.repo.list_processing_queue()
 
-    queue.root.append(order_id)
+        queue.root.append(order_id)
 
-    repo.save_processing_queue(queue)
-    logger.info("order_enqueued order_id=%s queue_depth=%s", order_id, len(queue.root))
+        self.repo.save_processing_queue(queue)
+        logger.info(
+            "order_enqueued order_id=%s queue_depth=%s", order_id, len(queue.root)
+        )
 
+    def dequeue_order(self) -> str | None:
+        queue: ProcessingQueue = self.repo.list_processing_queue()
 
-def dequeue_order():
-    queue: ProcessingQueue = repo.list_processing_queue()
+        if self.queue_empty(queue):
+            return None
+        order_id = queue.root.pop(0)
 
-    if queue_empty(queue):
-        return None
-    order_id = queue.root.pop(0)
+        self.repo.save_processing_queue(queue)
+        logger.debug(
+            "order_dequeued order_id=%s queue_depth=%s", order_id, len(queue.root)
+        )
 
-    repo.save_processing_queue(queue)
-    logger.debug("order_dequeued order_id=%s queue_depth=%s", order_id, len(queue.root))
+        return order_id
 
-    return order_id
+    def list_processing_queue(self) -> ProcessingQueue:
+        return self.repo.list_processing_queue()
 
+    def not_queue_empty(self) -> bool:
+        return bool(self.repo.list_processing_queue().root)
 
-def not_queue_empty():
-    return bool(repo.list_processing_queue().root)
-
-
-def queue_empty(queue: ProcessingQueue):
-    return queue.root == []
+    def queue_empty(self, queue: ProcessingQueue) -> bool:
+        return queue.root == []
