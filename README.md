@@ -30,13 +30,16 @@ The current local version includes:
 - JSON-backed local persistence
 - structured local logging for API, worker, queue, and pipeline services
 - environment-based settings with safe defaults in `.env.example`
-- cleaner service boundaries for order storage, idempotency, and order processing
+- workflow orchestration for worker and order processing
+- cleaner service boundaries for order storage, idempotency, queue, inventory, invoices, notifications, and payment
 - architecture and concept docs for the local system model
 - local order pipeline diagram
 - Pydantic contract models for stored domain records
 - validation at JSON storage boundaries for orders, inventory, invoices, notifications, idempotency keys, and the processing queue
-- repository/adapter foundation started for orders and inventory
-- order and inventory business logic moving toward validated Pydantic objects instead of repeated dict/model conversion
+- repository/adapter boundaries for orders, inventory, processing queue, idempotency keys, invoices, and notifications
+- JSON adapters that own storage serialization and Pydantic validation
+- lightweight dependency container for top-level service wiring
+- typed service/repository/model boundaries for the current local flow
 - order processing pipeline:
   - reserve inventory
   - capture mock payment
@@ -56,8 +59,9 @@ FastAPI API
 
 Worker
   -> reads queued order_id
+  -> invokes workflow service
   -> loads order through service/repository/adapter boundaries
-  -> processes business pipeline
+  -> processes order workflow
   -> persists updated state to JSON
 ```
 
@@ -66,7 +70,7 @@ Logging is intentionally local and simple for now:
 ```text
 API               -> request/response flow
 worker.runtime    -> worker lifecycle
-worker.service    -> queue consumption
+worker.service    -> queue consumption / worker orchestration
 orders.service    -> order creation/idempotency helpers
 orders.pipeline   -> order processing workflow
 queue.service     -> queue mutations
@@ -83,18 +87,21 @@ Current service split:
 ```text
 orders.service        -> order business operations through OrderRepository
 idempotency.service   -> idempotency key lookup/storage
-orders.pipeline       -> processing workflow
+workflows.pipeline    -> processing workflow
+workflows.worker      -> worker orchestration
 queue.service         -> queue persistence
 inventory.service     -> inventory state changes through InventoryRepository
 payment.service       -> mock payment capture
-invoice.service       -> invoice records
-notification.service  -> notification records
+invoice.service       -> invoice records through InvoiceRepository
+notification.service  -> notification records through NotificationRepository
 ```
 
 Repository/adapter direction:
 
 ```text
-service / pipeline
+API / worker runtime
+-> workflows
+-> services
 -> repository
 -> JSON adapter
 -> json_storage
@@ -237,9 +244,9 @@ GitHub Actions currently runs Ruff checks, and the `main` branch is protected so
 
 ## Roadmap
 
-Next planned versions:
+Current and planned versions:
 
-- `v0.6.0` - repository / adapter foundation
+
 - `v0.6.1` - failure handling
 - `v0.6.2` - retry/backoff simulation
 - `v0.6.3` - local DLQ simulation

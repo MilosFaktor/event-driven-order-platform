@@ -1,4 +1,5 @@
 from app.core.logging_config import get_logger
+from app.models.idempotency_keys import IdempotencyKeys
 from app.repositories.idempotency_repository import IdempotencyKeysRepository
 
 logger = get_logger("idempotency.service")
@@ -6,12 +7,9 @@ logger = get_logger("idempotency.service")
 
 class IdempotencyKeysService:
     def __init__(self, repo: IdempotencyKeysRepository | None = None):
-        if repo is None:
-            self.repo = IdempotencyKeysRepository()
-        else:
-            self.repo = repo
+        self.repo = repo or IdempotencyKeysRepository()
 
-    def get_order_id_by_idempotency_key(self, idempotency_key):
+    def get_order_id_by_idempotency_key(self, idempotency_key: str) -> str | None:
         idempotency_keys = self.repo.list_idempotency_keys()
         order_id = idempotency_keys.root.get(idempotency_key)
 
@@ -22,10 +20,10 @@ class IdempotencyKeysService:
 
         return order_id
 
-    def list_idempotency_keys(self):
+    def list_idempotency_keys(self) -> IdempotencyKeys:
         return self.repo.list_idempotency_keys()
 
-    def save_idempotency_key(self, idempotency_key, order_id):
+    def save_idempotency_key(self, idempotency_key: str, order_id: str) -> None:
         idempotency_keys = self.repo.list_idempotency_keys()
         idempotency_keys.root[idempotency_key] = order_id
         self.repo.save_idempotency_keys(idempotency_keys)

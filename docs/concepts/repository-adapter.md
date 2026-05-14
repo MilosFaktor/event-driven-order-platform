@@ -4,20 +4,21 @@ Repository and adapter boundaries separate business logic from physical storage 
 
 The current local app uses JSON files as its storage backend. Earlier versions let services load, validate, and save JSON data directly. That worked for the first local MVP, but it made services responsible for both business decisions and storage mechanics.
 
-## Current Direction
+## Current Shape
 
-The project is now introducing the boundary gradually, starting with orders.
+The project is currently finalizing this boundary for the active JSON-backed domains.
 
 ```text
-API / worker
--> service / pipeline
+API / worker runtime
+-> workflows
+-> services
 -> repository
 -> adapter
 -> JSON storage helper
 -> data/*.json
 ```
 
-The first slice is the order domain:
+Example order domain:
 
 ```text
 order business logic
@@ -37,7 +38,7 @@ order business logic
 
 ## Pydantic Object Boundary
 
-The order slice is moving toward keeping `Order` Pydantic objects inside business logic.
+The app is moving toward keeping validated Pydantic objects at service and storage boundaries.
 
 That means the adapter owns conversion at the storage edge:
 
@@ -61,13 +62,13 @@ The boundary makes future changes easier:
 
 ## Current Limitations
 
-This is not a full application-wide rewrite yet.
+This is still a local-first implementation, not production infrastructure.
 
 For now:
 
-- the order slice is the first repository/adapter proof
-- non-order domains may still use their existing JSON validation paths
-- heavy dependency injection is intentionally avoided
+- repositories/adapters are JSON-backed
+- dependency wiring is intentionally lightweight
 - stale queue messages and failure handling remain later work
+- retry/backoff and DLQ behavior remain later work
 
-The goal is to prove one clean boundary before expanding it across the rest of the system.
+The goal is to keep business behavior separated from storage mechanics before adding reliability features.

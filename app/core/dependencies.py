@@ -5,7 +5,7 @@ from app.services.notification_service import NotificationService
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 from app.services.queue_service import ProcessingQueueService
-from app.services.worker_service import WorkerService
+from app.workflows.worker_service import WorkerService
 
 
 class AppDependencies:

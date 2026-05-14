@@ -1,5 +1,6 @@
 from app.core.logging_config import get_logger
-from app.models.notifications import Notification
+from app.models.notifications import Notification, Notifications
+from app.models.order import Order
 from app.repositories.notification_repository import NotificationRepository
 
 logger = get_logger("notification.service")
@@ -7,12 +8,9 @@ logger = get_logger("notification.service")
 
 class NotificationService:
     def __init__(self, repo: NotificationRepository | None = None):
-        if repo is None:
-            self.repo = NotificationRepository()
-        else:
-            self.repo = repo
+        self.repo = repo or NotificationRepository()
 
-    def send_notification(self, order) -> Notification:
+    def send_notification(self, order: Order) -> Notification:
         notifications = self.repo.list_notifications()
         notification_id = f"ntf_{order.order_id}"
 
@@ -36,5 +34,5 @@ class NotificationService:
 
         return notifications.root[notification_id]
 
-    def list_notifications(self):
+    def list_notifications(self) -> Notifications:
         return self.repo.list_notifications()

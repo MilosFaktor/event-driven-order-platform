@@ -74,7 +74,7 @@ class OrderPipelineService:
             return order
 
         logger.info("payment_capture_started order_id=%s", order_id)
-        self.payment_service.payment_captured(order)
+        self.payment_service.capture_payment_mock(order)
         self.order_service.save_order(order)
         self.order_service.log_order_state(order)
 

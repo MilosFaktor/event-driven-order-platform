@@ -1,5 +1,6 @@
 from app.core.logging_config import get_logger
 from app.models.invoices import Invoice, InvoiceItem, Invoices
+from app.models.order import Order
 from app.repositories.inventory_repository import InventoryRepository
 from app.repositories.invoice_repository import InvoiceRepository
 
@@ -12,16 +13,10 @@ class InvoiceService:
         inventory_repo: InventoryRepository | None = None,
         invoice_repo: InvoiceRepository | None = None,
     ):
-        if inventory_repo is None:
-            self.inventory_repo = InventoryRepository()
-        else:
-            self.inventory_repo = inventory_repo
-        if invoice_repo is None:
-            self.invoice_repo = InvoiceRepository()
-        else:
-            self.invoice_repo = invoice_repo
+        self.inventory_repo = inventory_repo or InventoryRepository()
+        self.invoice_repo = invoice_repo or InvoiceRepository()
 
-    def create_invoice_items_snapshot(self, order) -> list[InvoiceItem]:
+    def create_invoice_items_snapshot(self, order: Order) -> list[InvoiceItem]:
         invoice_items = []
         inventory = self.inventory_repo.list_inventory()
 
@@ -42,7 +37,7 @@ class InvoiceService:
 
         return invoice_items
 
-    def create_invoice(self, order):
+    def create_invoice(self, order: Order) -> Invoice:
         invoices = self.invoice_repo.list_invoices()
         invoice_id = f"inv_{order.order_id}"
         invoice_items = self.create_invoice_items_snapshot(order)
