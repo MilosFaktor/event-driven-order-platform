@@ -70,7 +70,6 @@ def create_new_order(
 
     order_id = order_service.generate_order_id()
     order_service.create_order(
-        idempotency_key=idempotency_key,
         order_id=order_id,
         customer_id=request.customer_id,
         items=[
@@ -78,6 +77,7 @@ def create_new_order(
         ],
         currency=request.currency,
     )
+    idempotency_service.save_idempotency_key(idempotency_key, order_id)
     queue_service.enqueue_order(order_id)
     logger.info("order_created_and_enqueued order_id=%s", order_id)
     logger.info(
