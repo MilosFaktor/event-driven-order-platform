@@ -1,6 +1,5 @@
 from app.core.dependencies import app_dependencies as deps
 from app.core.logging_config import get_logger
-from app.services.payment_service import is_payment_captured, payment_captured_mock
 
 logger = get_logger("orders.pipeline")
 
@@ -8,6 +7,7 @@ order_service = deps.order_service()
 inventory_service = deps.inventory_service()
 invoice_service = deps.invoice_service()
 notification_service = deps.notification_service()
+payment_service = deps.payment_service()
 
 
 def mark_order_status(order, status):
@@ -63,11 +63,11 @@ def process_order(order_id):
         return order
 
     logger.info("payment_capture_started order_id=%s", order_id)
-    payment_captured_mock(order)
+    payment_service.payment_captured(order)
     order_service.save_order(order)
     order_service.log_order_state(order)
 
-    if is_payment_captured(order):
+    if payment_service.is_payment_captured(order):
         logger.info("inventory_sale_finalization_started order_id=%s", order_id)
         inventory_service.finalize_inventory_sale(order)
 
