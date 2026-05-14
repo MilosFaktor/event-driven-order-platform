@@ -4,7 +4,6 @@ from app.core.dependencies import app_dependencies as deps
 from app.core.logging_config import configure_logging_api, get_logger
 from app.models.order import OrderItem
 from app.models.orders_request import CreateOrderRequest
-from app.services.worker_service import process_next_order
 
 app = FastAPI()
 
@@ -14,6 +13,7 @@ queue_service = deps.queue_service()
 idempotency_service = deps.idempotency_service()
 invoice_service = deps.invoice_service()
 notification_service = deps.notification_service()
+worker_service = deps.worker_service()
 
 
 configure_logging_api()
@@ -109,7 +109,7 @@ def read_order(order_id: str):
 @app.post("/v1/worker/process-next-order")
 def worker_process_next_order():
     logger.info("manual_worker_process_next_requested")
-    result = process_next_order()
+    result = worker_service.process_next_order()
     if result is None:
         logger.info("manual_worker_process_next_empty_queue")
         raise HTTPException(status_code=200, detail="No orders to process")

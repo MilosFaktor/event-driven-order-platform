@@ -1,23 +1,22 @@
 import time
 
 from app.core.config import settings
+from app.core.dependencies import app_dependencies as deps
 from app.core.logging_config import configure_logging_worker, get_logger
-from app.services.queue_service import ProcessingQueueService
-from app.services.worker_service import process_next_order
 
 configure_logging_worker()
 logger = get_logger("worker.runtime")
 
-queue_service = ProcessingQueueService()
+
+worker_service = deps.worker_service()
 
 
 def worker_server():
     seconds = 0
     while True:
-        if queue_service.not_queue_empty():
+        if worker_service.has_work():
             logger.info("queue_work_detected")
-
-            process_next_order()
+            worker_service.process_next_order()
 
         logger.debug("worker_heartbeat seconds=%s", seconds)
 

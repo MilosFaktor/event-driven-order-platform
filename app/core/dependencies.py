@@ -5,6 +5,7 @@ from app.services.notification_service import NotificationService
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 from app.services.queue_service import ProcessingQueueService
+from app.services.worker_service import WorkerService
 
 
 class AppDependencies:
@@ -16,6 +17,7 @@ class AppDependencies:
         self._order_service = None
         self._payment_service = None
         self._queue_service = None
+        self._worker_service = None
 
     def idempotency_service(self) -> IdempotencyKeysService:
         if self._idempotency_service is None:
@@ -51,6 +53,11 @@ class AppDependencies:
         if self._queue_service is None:
             self._queue_service = ProcessingQueueService()
         return self._queue_service
+
+    def worker_service(self) -> WorkerService:
+        if self._worker_service is None:
+            self._worker_service = WorkerService()
+        return self._worker_service
 
 
 app_dependencies = AppDependencies()
