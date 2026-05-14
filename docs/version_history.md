@@ -431,43 +431,60 @@ Not included:
 
 Goal: introduce a storage boundary before failure handling, retries, and broader tests.
 
-Current direction:
+Current finalization direction:
 
-- Prove the repository/adapter boundary one domain slice at a time.
-- Keep API and worker code talking through services/pipeline code.
-- Move order JSON load/save behind `JsonOrderAdapter`.
-- Move order data access behind `OrderRepository`.
-- Let order business logic work with `Order` Pydantic objects instead of raw dictionaries.
-- Move inventory JSON load/save behind `JsonInventoryAdapter`.
-- Move inventory data access behind `InventoryRepository`.
-- Keep inventory business logic working with validated `Inventory` and `InventoryItem` objects.
-- Let invoice item snapshots read validated inventory data through the inventory repository.
+- Keep API and worker runtime code talking through services/workflows.
+- Keep workflows focused on orchestration.
+- Keep services focused on domain behavior.
+- Keep repositories focused on domain data access.
+- Keep adapters focused on JSON storage paths, serialization, and Pydantic validation.
 - Use clearer naming:
   - `list_*` for collection reads
   - `get_*` for single-record lookups
 - Prefer loading collections once, mutating in memory, and saving once when processing multiple items.
 
-Intentionally not expanding yet:
+Implemented in v0.6.0:
 
 ```text
-- repositories/adapters for every JSON-backed domain
-- heavy dependency injection
-- failure handling
-- retry/backoff
-- DLQ
+- JSON adapters and repositories for orders, inventory, queue, idempotency keys, invoices, and notifications
+- service wiring through repositories instead of direct json_storage access
+- workflow classes for worker and order processing orchestration
+- lightweight AppDependencies container for top-level service wiring
+- PaymentService class
+- shared Currency type alias
+- tighter type hints across service, repository, and model boundaries
 ```
 
-Slices completed or in progress:
+Current v0.6.0 architecture shape:
+
+```text
+API / worker runtime
+-> workflows
+-> services
+-> repositories
+-> adapters
+-> json_storage
+-> data/*.json
+```
+
+Slices completed or being finalized:
 
 ```text
 v0.6.0 - Order Repository Adapter Slice
 v0.6.0 - Inventory Repository Adapter Slice
-v0.6.0 - Order workflow naming and object-flow cleanup
+v0.6.0 - Queue Repository Adapter Slice
+v0.6.0 - Idempotency Repository Adapter Slice
+v0.6.0 - Invoice Repository Adapter Slice
+v0.6.0 - Notification Repository Adapter Slice
+v0.6.0 - Service Dependency Container
+v0.6.0 - Payment Service Class Wiring
+v0.6.0 - Worker and Pipeline Service Classes
+v0.6.0 - Workflow Organization and Service Typing Cleanup
 ```
 
 ## Next Versions
 
-Planned next steps:
+Current and planned next steps:
 
 - `v0.6.0` - repository / adapter foundation
 - `v0.6.1` - failure handling

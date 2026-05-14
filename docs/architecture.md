@@ -22,12 +22,14 @@ It is trying to make the main backend/platform concepts visible:
 ```text
 Client
 -> API layer
--> service layer
+-> workflow / service layer
+-> repositories
+-> adapters
 -> local JSON storage
 -> local queue
 -> worker runtime
--> order-processing pipeline
--> local JSON storage
+-> order-processing workflow
+-> repositories / adapters
 ```
 
 ## Responsibility Boundaries
@@ -56,19 +58,16 @@ If the two disagree, storage is the current source of truth.
 
 ## Current Intentional Simplicity
 
-The project is gradually introducing:
+The project is currently finalizing:
 
-- an order repository
-- an order JSON adapter
-- an inventory repository
-- an inventory JSON adapter
-- Pydantic `Order` objects inside the order business slice
-- validated `Inventory` objects behind inventory service/repository boundaries
+- repository and JSON adapter boundaries for the current JSON-backed domains
+- Pydantic objects at storage and service boundaries
+- workflow classes for worker and order-processing orchestration
+- lightweight dependency wiring for application entrypoints
+- typed service, repository, and model contracts
 
 The project does not yet have:
 
-- repository/adapter boundaries across every domain
-- broad dependency injection
 - retry/backoff
 - DLQ behavior
 - AWS infrastructure
@@ -77,11 +76,12 @@ Those are planned later, after the local model is understandable.
 
 ## Repository / Adapter Direction
 
-The repository/adapter boundary is being introduced gradually, one storage domain at a time.
+The repository/adapter boundary is now the current local storage pattern for the active JSON-backed domains.
 
 ```text
-API / worker
--> service / pipeline
+API / worker runtime
+-> workflows
+-> services
 -> repository
 -> JSON adapter
 -> JSON storage helper
@@ -89,8 +89,6 @@ API / worker
 ```
 
 The goal is for business logic to work with validated Pydantic objects while adapters own JSON serialization and validation.
-
-The first slices are orders and inventory. Remaining JSON-backed domains can move behind repositories/adapters later.
 
 ## Local To AWS Mapping
 
