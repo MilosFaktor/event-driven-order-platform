@@ -29,15 +29,15 @@ app/api/main.py                       API layer
 app/services/order_service.py          order records
 app/services/idempotency_service.py    idempotency keys
 app/services/queue_service.py          queue storage
-app/services/worker_service.py         dequeue one order
-app/services/order_pipeline_service.py processing workflow
+app/workflows/worker_service.py        dequeue one order
+app/workflows/order_pipeline_service.py processing workflow
 ```
 
 ## Rules For Now
 
 - The API creates and queues work. It should not process the full order.
-- The worker/pipeline owns processing.
-- The pipeline should save state after meaningful steps.
+- The worker/workflow owns processing.
+- The order workflow should save state after meaningful steps.
 - Completed orders should not be processed again.
 - Missing queued order IDs should become controlled failures later.
 
