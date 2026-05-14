@@ -1,23 +1,19 @@
 from fastapi import FastAPI, Header, HTTPException, Response
 
+from app.core.dependencies import app_dependencies as deps
 from app.core.logging_config import configure_logging_api, get_logger
 from app.models.order import OrderItem
 from app.models.orders_request import CreateOrderRequest
-from app.services.idempotency_service import IdempotencyKeysService
-from app.services.inventory_service import InventoryService
-from app.services.invoice_service import InvoiceService
-from app.services.notification_service import NotificationService
-from app.services.order_service import OrderService
-from app.services.queue_service import ProcessingQueueService
 from app.services.worker_service import process_next_order
 
 app = FastAPI()
-order_service = OrderService()
-inventory_service = InventoryService()
-queue_service = ProcessingQueueService()
-idempotency_service = IdempotencyKeysService()
-invoice_service = InvoiceService()
-notification_service = NotificationService()
+
+order_service = deps.order_service()
+inventory_service = deps.inventory_service()
+queue_service = deps.queue_service()
+idempotency_service = deps.idempotency_service()
+invoice_service = deps.invoice_service()
+notification_service = deps.notification_service()
 
 
 configure_logging_api()
