@@ -3,11 +3,8 @@ from uuid import uuid4
 from app.core.logging_config import get_logger
 from app.models.order import Order, OrderSteps
 from app.repositories.order_repository import OrderRepository
-from app.services.idempotency_service import IdempotencyKeysService
 
 logger = get_logger("order.service")
-
-idempotency_service = IdempotencyKeysService()
 
 
 def build_pending_order(order_id, customer_id, items, currency) -> Order:
@@ -58,15 +55,13 @@ class OrderService:
     def order_being_processed(self, order):
         return order.status == "PROCESSING"
 
-    def create_order(self, idempotency_key, order_id, customer_id, items, currency):
+    def create_order(self, order_id, customer_id, items, currency):
         logger.info(
             "order_creation_started order_id=%s customer_id=%s item_count=%s",
             order_id,
             customer_id,
             len(items),
         )
-
-        idempotency_service.save_idempotency_key(idempotency_key, order_id)
 
         order = build_pending_order(order_id, customer_id, items, currency)
 
