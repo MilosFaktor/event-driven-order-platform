@@ -1,10 +1,10 @@
+from app.core.dependencies import app_dependencies as deps
 from app.core.logging_config import get_logger
 from app.services.order_pipeline_service import process_order
-from app.services.queue_service import ProcessingQueueService
 
 logger = get_logger("worker.service")
 
-queue_service = ProcessingQueueService()
+queue_service = deps.queue_service()
 
 
 def process_next_order():

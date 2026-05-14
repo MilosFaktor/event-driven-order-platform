@@ -1,16 +1,13 @@
+from app.core.dependencies import app_dependencies as deps
 from app.core.logging_config import get_logger
-from app.services.inventory_service import InventoryService
-from app.services.invoice_service import InvoiceService
-from app.services.notification_service import NotificationService
-from app.services.order_service import OrderService
 from app.services.payment_service import is_payment_captured, payment_captured_mock
 
 logger = get_logger("orders.pipeline")
 
-order_service = OrderService()
-inventory_service = InventoryService()
-invoice_service = InvoiceService()
-notification_service = NotificationService()
+order_service = deps.order_service()
+inventory_service = deps.inventory_service()
+invoice_service = deps.invoice_service()
+notification_service = deps.notification_service()
 
 
 def mark_order_status(order, status):
