@@ -1,6 +1,6 @@
 from app.core.logging_config import get_logger
-from app.services.order_pipeline_service import OrderPipelineService
 from app.services.queue_service import ProcessingQueueService
+from app.workflows.order_pipeline_service import OrderPipelineService
 
 logger = get_logger("worker.service")
 

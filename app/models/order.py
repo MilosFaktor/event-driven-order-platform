@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator
 
+from app.models.types import Currency
+
 
 class OrderItem(BaseModel):
     model_config = ConfigDict(
@@ -40,7 +42,7 @@ class Order(BaseModel):
     order_id: str
     customer_id: str
     items: list[OrderItem]
-    currency: Literal["USD", "EUR"] = "EUR"
+    currency: Currency = "EUR"
     status: Literal["PENDING", "PROCESSING", "COMPLETED", "FAILED"] = "PENDING"
     steps: OrderSteps
     failure_reason: str | None = None

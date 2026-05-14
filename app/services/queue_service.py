@@ -12,7 +12,7 @@ class ProcessingQueueService:
         else:
             self.repo = repo
 
-    def enqueue_order(self, order_id) -> None:
+    def enqueue_order(self, order_id: str) -> None:
         queue: ProcessingQueue = self.repo.list_processing_queue()
 
         queue.root.append(order_id)
