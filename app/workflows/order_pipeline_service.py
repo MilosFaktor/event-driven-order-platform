@@ -103,14 +103,17 @@ class OrderPipelineService:
         # INVENTORY FINALIZATION
         logger.info("inventory_sale_finalization_started order_id=%s", order_id)
 
-        self.inventory_service.finalize_inventory_sale(order)
+        try:
+            self.inventory_service.finalize_inventory_sale(order)
+        except Exception:  # catches everything here for now
+            self.fail_order(order, "INVENTORY", "Inventory finalization failed")
+            self.order_service.save_order(order)
+            self.order_service.log_order_state(order)
+            logger.warning("inventory_sale_finalization_failed order_id=%s", order_id)
+            return order
 
         self.order_service.save_order(order)
         self.order_service.log_order_state(order)
-
-        if self.order_service.order_failed(order):
-            logger.warning("inventory_sale_finalization_failed order_id=%s", order_id)
-            return order
 
         # INVOICE
         logger.info("invoice_creation_started order_id=%s", order_id)
