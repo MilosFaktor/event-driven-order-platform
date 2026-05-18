@@ -16,6 +16,10 @@ class InvoiceService:
         self.inventory_repo = inventory_repo or InventoryRepository()
         self.invoice_repo = invoice_repo or InvoiceRepository()
 
+    def mark_invoice_created(self, order):
+        order.steps.invoice = "CREATED"
+        logger.debug("order_invoice_step_updated order_id=%s", order.order_id)
+
     def create_invoice_items_snapshot(self, order: Order) -> list[InvoiceItem]:
         invoice_items = []
         inventory = self.inventory_repo.list_inventory()
@@ -52,6 +56,9 @@ class InvoiceService:
         )
 
         self.invoice_repo.save_invoices(invoices)
+
+        self.mark_invoice_created(order)
+
         logger.info(
             "invoice_created order_id=%s invoice_id=%s",
             order.order_id,

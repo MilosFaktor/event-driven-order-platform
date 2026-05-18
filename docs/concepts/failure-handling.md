@@ -1,8 +1,8 @@
 # Failure Handling
 
-Failure handling is not complete yet.
+Failure handling is partially implemented.
 
-This doc captures the direction before adding random `try/except` blocks.
+The current implementation makes workflow failures explicit in order state before adding retry or DLQ behavior.
 
 ## Current Goal
 
@@ -29,7 +29,7 @@ API / request validation failure
 -> do not involve the worker
 
 Business workflow failure
--> owned by workflow/services
+-> owned by the order pipeline with help from services
 -> order already exists
 -> mark order FAILED
 -> set failure_step
@@ -51,7 +51,7 @@ System / storage failure
 -> do not hide corrupted local state behind broad catch-all handlers
 ```
 
-## First Failure Cases
+## Current Workflow Failure Cases
 
 ```text
 stale queue / missing order_id
@@ -61,9 +61,23 @@ invoice failure
 notification failure
 ```
 
-## Fields To Add
+The order pipeline handles the main workflow checkpoints:
 
-Orders will need:
+```text
+inventory reservation
+payment capture
+inventory sale finalization
+invoice creation
+notification sending
+```
+
+Inventory reservation is a business failure path. The inventory service marks the inventory step as failed and stores the reason, then the order pipeline turns that into a whole-order failure.
+
+Payment, inventory finalization, invoice, and notification currently use transitional broad exception handling in the pipeline. Later versions can replace those broad catches with named domain errors.
+
+## Order Failure Fields
+
+Orders include:
 
 ```text
 failure_reason
@@ -83,7 +97,7 @@ Failure handling comes before retry/DLQ.
 
 First make failures visible and deterministic. Then decide which failures should be retried.
 
-For the first failure-handling version, the target is controlled order workflow failure state, not a complete reliability platform.
+For this failure-handling version, the target is controlled order workflow failure state, not a complete reliability platform.
 
 ## Retry Thinking
 
@@ -102,9 +116,9 @@ Retry belongs to a later version. The first version should only make the failure
 
 ## Inventory Compensation
 
-If inventory was reserved and a later step fails permanently, reserved inventory may need to be released.
+If inventory was reserved and payment fails, the pipeline explicitly releases reserved inventory before saving the failed order state.
 
-That behavior should be explicit in the pipeline.
+Later retry/DLQ work may make compensation policy more granular.
 
 ## Logging
 
@@ -123,4 +137,4 @@ failure_reason
 - Do not lose the step where the failure happened.
 - Do not leave reserved inventory stuck after a later failure.
 - Do not turn API validation errors into worker failures.
-- Do not catch broad system/storage errors unless the app can save a meaningful state.
+- Do not keep broad catch-all handlers forever; replace them with named domain failures when the failure model stabilizes.

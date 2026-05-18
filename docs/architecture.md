@@ -106,12 +106,12 @@ The goal is for business logic to work with validated Pydantic objects while ada
 
 ## Direction
 
-The planned direction is:
+The current direction is:
 
 ```text
 contracts
 -> repository / adapter boundary
--> explicit failure handling
+-> controlled workflow failure handling
 -> retry / backoff
 -> DLQ
 -> behavior-focused tests

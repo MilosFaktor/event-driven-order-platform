@@ -427,7 +427,7 @@ Not included:
 - DLQ
 ```
 
-## Current Work - v0.6.0 Repository / Adapter Foundation
+## Completed Work - v0.6.0 Repository / Adapter Foundation
 
 Goal: introduce a storage boundary before failure handling, retries, and broader tests.
 
@@ -482,11 +482,37 @@ v0.6.0 - Worker and Pipeline Service Classes
 v0.6.0 - Workflow Organization and Service Typing Cleanup
 ```
 
+## Current Work - v0.6.1 Failure Handling
+
+Goal: make order workflow failures explicit, deterministic, and saved before adding retry or DLQ behavior.
+
+Implemented or being finalized in v0.6.1:
+
+```text
+- failure_step added to order state alongside failure_reason
+- order pipeline helper for central failed-order marking
+- inventory reservation failure records inventory step failure and reason
+- payment failure path marks order failed and releases reserved inventory
+- inventory sale finalization failures are handled in the pipeline
+- invoice creation failures are handled in the pipeline
+- notification sending failures are handled in the pipeline
+- broad transitional exception handling exists at workflow boundaries
+```
+
+Current responsibility shape:
+
+```text
+services perform domain work
+order pipeline orchestrates steps and owns whole-order failure state
+repositories/adapters persist local JSON state
+```
+
+Retry/backoff and DLQ behavior remain planned for v0.6.2 and v0.6.3.
+
 ## Next Versions
 
 Current and planned next steps:
 
-- `v0.6.0` - repository / adapter foundation
 - `v0.6.1` - failure handling
 - `v0.6.2` - retry/backoff simulation
 - `v0.6.3` - local DLQ simulation
