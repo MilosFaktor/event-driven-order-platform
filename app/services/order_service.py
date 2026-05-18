@@ -22,6 +22,7 @@ def build_pending_order(
         status="PENDING",
         steps=OrderSteps(),
         failure_reason=None,
+        failure_step=None,
     )
 
 
