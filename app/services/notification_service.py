@@ -10,6 +10,13 @@ class NotificationService:
     def __init__(self, repo: NotificationRepository | None = None):
         self.repo = repo or NotificationRepository()
 
+    def mark_notification_sent(self, order):
+        order.steps.notification = "SENT"
+        logger.debug(
+            "order_notification_step_updated order_id=%s",
+            order.order_id,
+        )
+
     def send_notification(self, order: Order) -> Notification:
         notifications = self.repo.list_notifications()
         notification_id = f"ntf_{order.order_id}"
@@ -25,6 +32,9 @@ class NotificationService:
         )
 
         self.repo.save_notifications(notifications)
+
+        self.mark_notification_sent(order)
+
         logger.info(
             "notification_sent order_id=%s notification_id=%s channel=%s",
             order.order_id,

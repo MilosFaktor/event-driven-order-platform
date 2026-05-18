@@ -32,13 +32,6 @@ class OrderPipelineService:
             status,
         )
 
-    def mark_notification_sent(self, order):
-        order.steps.notification = "SENT"
-        logger.debug(
-            "order_notification_step_updated order_id=%s",
-            order.order_id,
-        )
-
     def fail_order(self, order, failure_step, failure_reason):
         order.status = "FAILED"
         order.failure_step = failure_step
@@ -127,8 +120,16 @@ class OrderPipelineService:
 
         # NOTIFICATION
         logger.info("notification_send_started order_id=%s", order_id)
-        self.notification_service.send_notification(order)
-        self.mark_notification_sent(order)
+
+        try:
+            self.notification_service.send_notification(order)
+        except Exception:  # catches everything here for now
+            self.fail_order(order, "NOTIFICATION", "Notification sending failed")
+            self.order_service.save_order(order)
+            self.order_service.log_order_state(order)
+            logger.warning("notification_send_failed order_id=%s", order_id)
+            return order
+
         self.order_service.save_order(order)
         self.order_service.log_order_state(order)
         # what happens if notification hasn't been sent / solution retry logic
