@@ -35,6 +35,7 @@ class InventoryService:
     ) -> None:
         order.status = "FAILED"
         order.failure_reason = f"Insufficient stock for {inventory.root[sku].name}"
+        order.failure_step = "INVENTORY"
         order.steps.inventory = "FAILED"
         logger.warning(
             "inventory_reservation_failed order_id=%s sku=%s available_stock=%s failure_reason=%s",

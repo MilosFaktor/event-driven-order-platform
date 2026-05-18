@@ -43,6 +43,17 @@ class OrderPipelineService:
             order.order_id,
         )
 
+    def fail_order(self, order, failure_step, failure_reason):
+        order.status = "FAILED"
+        order.failure_step = failure_step
+        order.failure_reason = failure_reason
+        logger.warning(
+            "order_failed order_id=%s failure_step=%s failure_reason=%s",
+            order.order_id,
+            failure_step,
+            failure_reason,
+        )
+
     def process_order(self, order_id):
         logger.info("order_processing_pipeline_started order_id=%s", order_id)
 
@@ -78,6 +89,7 @@ class OrderPipelineService:
         self.order_service.save_order(order)
         self.order_service.log_order_state(order)
 
+        # PAYMENT
         if self.payment_service.is_payment_captured(order):
             logger.info("inventory_sale_finalization_started order_id=%s", order_id)
             self.inventory_service.finalize_inventory_sale(order)
@@ -86,7 +98,7 @@ class OrderPipelineService:
             self.order_service.log_order_state(order)
         else:
             logger.warning("payment_capture_failed order_id=%s", order_id)
-            self.mark_order_status(order, "FAILED")
+            self.fail_order(order, "PAYMENT", "Payment capture failed")
 
             logger.info("inventory_release_started order_id=%s", order_id)
             self.inventory_service.release_order_inventory(order)
@@ -100,6 +112,7 @@ class OrderPipelineService:
             logger.warning("inventory_sale_finalization_failed order_id=%s", order_id)
             return order
 
+        # INVOICE
         logger.info("invoice_creation_started order_id=%s", order_id)
         self.invoice_service.create_invoice(order)
 
@@ -108,6 +121,7 @@ class OrderPipelineService:
         self.order_service.log_order_state(order)
         # what happens if invoice hasn't been created / solution retry logic
 
+        # NOTIFICATION
         logger.info("notification_send_started order_id=%s", order_id)
         self.notification_service.send_notification(order)
         self.mark_notification_sent(order)
