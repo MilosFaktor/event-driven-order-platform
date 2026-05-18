@@ -32,10 +32,6 @@ class OrderPipelineService:
             status,
         )
 
-    def mark_invoice_created(self, order):
-        order.steps.invoice = "CREATED"
-        logger.debug("order_invoice_step_updated order_id=%s", order.order_id)
-
     def mark_notification_sent(self, order):
         order.steps.notification = "SENT"
         logger.debug(
@@ -114,11 +110,19 @@ class OrderPipelineService:
 
         # INVOICE
         logger.info("invoice_creation_started order_id=%s", order_id)
-        self.invoice_service.create_invoice(order)
 
-        self.mark_invoice_created(order)
+        try:
+            self.invoice_service.create_invoice(order)
+        except Exception:  # catches everything here for now
+            self.fail_order(order, "INVOICE", "Invoice creation failed")
+            self.order_service.save_order(order)
+            self.order_service.log_order_state(order)
+            logger.warning("invoice_creation_failed order_id=%s", order_id)
+            return order
+
         self.order_service.save_order(order)
         self.order_service.log_order_state(order)
+
         # what happens if invoice hasn't been created / solution retry logic
 
         # NOTIFICATION
