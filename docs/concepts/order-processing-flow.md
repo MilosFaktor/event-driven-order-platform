@@ -50,13 +50,18 @@ COMPLETED
 FAILED
 ```
 
-## Future Work
+## Failure State
 
-Failure handling will add clearer fields like:
+Failure handling records clearer fields like:
 
 ```text
 failure_reason
 failure_step
+```
+
+Retry work may later add:
+
+```text
 attempt_count
 ```
 
