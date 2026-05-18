@@ -73,19 +73,12 @@ class OrderPipelineService:
             logger.warning("inventory_reservation_failed order_id=%s", order_id)
             return order
 
-        logger.info("payment_capture_started order_id=%s", order_id)
-        self.payment_service.capture_payment_mock(order)
-        self.order_service.save_order(order)
-        self.order_service.log_order_state(order)
-
         # PAYMENT
-        if self.payment_service.is_payment_captured(order):
-            logger.info("inventory_sale_finalization_started order_id=%s", order_id)
-            self.inventory_service.finalize_inventory_sale(order)
+        logger.info("payment_capture_started order_id=%s", order_id)
 
-            self.order_service.save_order(order)
-            self.order_service.log_order_state(order)
-        else:
+        try:
+            self.payment_service.capture_payment_mock(order)
+        except Exception:  # catches everything here for now
             logger.warning("payment_capture_failed order_id=%s", order_id)
             self.fail_order(order, "PAYMENT", "Payment capture failed")
 
@@ -96,6 +89,12 @@ class OrderPipelineService:
             self.order_service.log_order_state(order)
 
             return order
+
+        logger.info("inventory_sale_finalization_started order_id=%s", order_id)
+        self.inventory_service.finalize_inventory_sale(order)
+
+        self.order_service.save_order(order)
+        self.order_service.log_order_state(order)
 
         if self.order_service.order_failed(order):
             logger.warning("inventory_sale_finalization_failed order_id=%s", order_id)

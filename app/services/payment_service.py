@@ -5,10 +5,11 @@ logger = get_logger("payment.service")
 
 
 class PaymentService:
+    def mark_payment_captured(self, order):
+        order.steps.payment = "CAPTURED"
+        logger.debug("order_payment_step_updated order_id=%s", order.order_id)
+
     def capture_payment_mock(self, order: Order) -> None:
         # payment mock
-        order.steps.payment = "CAPTURED"
+        self.mark_payment_captured(order)
         logger.info("payment_captured order_id=%s", order.order_id)
-
-    def is_payment_captured(self, order: Order) -> bool:
-        return order.steps.payment == "CAPTURED"
