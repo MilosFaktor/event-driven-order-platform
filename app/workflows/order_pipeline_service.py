@@ -32,6 +32,15 @@ class OrderPipelineService:
             status,
         )
 
+    def order_failed_at_step(self, order, step):
+        order_steps = {
+            "INVENTORY": order.steps.inventory,
+            "PAYMENT": order.steps.payment,
+            "INVOICE": order.steps.invoice,
+            "NOTIFICATION": order.steps.notification,
+        }
+        return order_steps[step] == "FAILED"
+
     def fail_order(self, order, failure_step, failure_reason):
         order.status = "FAILED"
         order.failure_step = failure_step
@@ -69,7 +78,7 @@ class OrderPipelineService:
 
         self.inventory_service.reserve_inventory(order)
 
-        if order.steps.inventory == "FAILED":
+        if self.order_failed_at_step(order, "INVENTORY"):
             self.fail_order(
                 order,
                 "INVENTORY",
