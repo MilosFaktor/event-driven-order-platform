@@ -64,14 +64,24 @@ class OrderPipelineService:
         self.order_service.save_order(order)
         self.order_service.log_order_state(order)
 
+        # INVENTORY RESERVATION
         logger.info("inventory_reservation_started order_id=%s", order_id)
-        self.inventory_service.reserve_inventory(order)
-        self.order_service.save_order(order)
-        self.order_service.log_order_state(order)
 
-        if self.order_service.order_failed(order):
+        self.inventory_service.reserve_inventory(order)
+
+        if order.steps.inventory == "FAILED":
+            self.fail_order(
+                order,
+                "INVENTORY",
+                order.failure_reason or "Inventory reservation failed",
+            )
+            self.order_service.save_order(order)
+            self.order_service.log_order_state(order)
             logger.warning("inventory_reservation_failed order_id=%s", order_id)
             return order
+
+        self.order_service.save_order(order)
+        self.order_service.log_order_state(order)
 
         # PAYMENT
         logger.info("payment_capture_started order_id=%s", order_id)
@@ -90,7 +100,9 @@ class OrderPipelineService:
 
             return order
 
+        # INVENTORY FINALIZATION
         logger.info("inventory_sale_finalization_started order_id=%s", order_id)
+
         self.inventory_service.finalize_inventory_sale(order)
 
         self.order_service.save_order(order)

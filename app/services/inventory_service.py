@@ -33,20 +33,10 @@ class InventoryService:
     def fail_inventory_reservation(
         self, inventory: Inventory, order: Order, sku: str
     ) -> None:
-        order.status = "FAILED"
         order.failure_reason = f"Insufficient stock for {inventory.root[sku].name}"
-        order.failure_step = "INVENTORY"
         order.steps.inventory = "FAILED"
-        logger.warning(
-            "inventory_reservation_failed order_id=%s sku=%s available_stock=%s failure_reason=%s",
-            order.order_id,
-            sku,
-            inventory.root[sku].available_stock,
-            order.failure_reason,
-        )
 
     def reserve_inventory(self, order: Order) -> None:
-        logger.debug("inventory_reservation_started order_id=%s", order.order_id)
         inventory = self.repo.list_inventory()
 
         for item in order.items:
@@ -109,7 +99,7 @@ class InventoryService:
         return inventory
 
     def finalize_inventory_sale(self, order: Order) -> None:
-        logger.debug("inventory_sale_finalization_started order_id=%s", order.order_id)
+
         inventory = self.repo.list_inventory()
 
         for item in order.items:
