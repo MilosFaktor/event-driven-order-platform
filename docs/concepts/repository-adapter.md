@@ -6,7 +6,7 @@ The current local app uses JSON files as its storage backend. Earlier versions l
 
 ## Current Shape
 
-The project is currently finalizing this boundary for the active JSON-backed domains.
+The project currently uses this boundary for the active JSON-backed domains.
 
 ```text
 API / worker runtime
@@ -68,7 +68,8 @@ For now:
 
 - repositories/adapters are JSON-backed
 - dependency wiring is intentionally lightweight
-- stale queue messages and failure handling remain later work
+- failure handling is implemented for the current local workflow slice
+- stale queue messages are discarded as non-order workflow failures
 - retry/backoff and DLQ behavior remain later work
 
-The goal is to keep business behavior separated from storage mechanics before adding reliability features.
+The goal is to keep business behavior separated from storage mechanics while adding reliability features one slice at a time.

@@ -12,7 +12,7 @@ POST /v1/orders
 -> return response
 
 worker/manual endpoint
--> dequeue order_id
+-> peek queued order_id
 -> load order
 -> mark PROCESSING
 -> reserve inventory
@@ -39,7 +39,8 @@ app/workflows/order_pipeline_service.py processing workflow
 - The worker/workflow owns processing.
 - The order workflow should save state after meaningful steps.
 - Completed orders should not be processed again.
-- Missing queued order IDs should become controlled failures later.
+- Missing queued order IDs are treated as stale queue messages and discarded by the worker.
+- Inventory reservation should not partially reserve earlier items when a later item fails.
 
 ## Current States
 

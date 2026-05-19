@@ -1,6 +1,6 @@
 # Failure Handling
 
-Failure handling is partially implemented.
+Failure handling is implemented for the current local workflow slice.
 
 The current implementation makes workflow failures explicit in order state before adding retry or DLQ behavior.
 
@@ -73,6 +73,10 @@ notification sending
 
 Inventory reservation is a business failure path. The inventory service marks the inventory step as failed and stores the reason, then the order pipeline turns that into a whole-order failure.
 
+Inventory reservation validates all order items before mutating stock. If a later item has insufficient stock, earlier items are not partially reserved.
+
+Stale queue messages are worker/queue consistency failures, not order failures. If a queued `order_id` no longer exists, the worker discards the stale queue message separately from empty queue handling.
+
 Payment, inventory finalization, invoice, and notification currently use transitional broad exception handling in the pipeline. Later versions can replace those broad catches with named domain errors.
 
 ## Order Failure Fields
@@ -97,7 +101,7 @@ Failure handling comes before retry/DLQ.
 
 First make failures visible and deterministic. Then decide which failures should be retried.
 
-For this failure-handling version, the target is controlled order workflow failure state, not a complete reliability platform.
+For this failure-handling slice, the target is controlled order workflow failure state, not a complete reliability platform.
 
 ## Retry Thinking
 
@@ -119,6 +123,8 @@ Retry belongs to a later version. The first version should only make the failure
 If inventory was reserved and payment fails, the pipeline explicitly releases reserved inventory before saving the failed order state.
 
 Later retry/DLQ work may make compensation policy more granular.
+
+Inventory reservation itself avoids partial reservation by checking all requested items before changing stock.
 
 ## Logging
 

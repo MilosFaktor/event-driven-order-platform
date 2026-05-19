@@ -467,7 +467,7 @@ API / worker runtime
 -> data/*.json
 ```
 
-Slices completed or being finalized:
+Completed v0.6.0 slices:
 
 ```text
 v0.6.0 - Order Repository Adapter Slice
@@ -482,20 +482,22 @@ v0.6.0 - Worker and Pipeline Service Classes
 v0.6.0 - Workflow Organization and Service Typing Cleanup
 ```
 
-## Current Work - v0.6.1 Failure Handling
+## v0.6.1 - Failure Handling
 
 Goal: make order workflow failures explicit, deterministic, and saved before adding retry or DLQ behavior.
 
-Implemented or being finalized in v0.6.1:
+Implemented in v0.6.1:
 
 ```text
 - failure_step added to order state alongside failure_reason
 - order pipeline helper for central failed-order marking
 - inventory reservation failure records inventory step failure and reason
+- inventory reservation checks all items before mutating stock to prevent partial reservations
 - payment failure path marks order failed and releases reserved inventory
 - inventory sale finalization failures are handled in the pipeline
 - invoice creation failures are handled in the pipeline
 - notification sending failures are handled in the pipeline
+- stale queued order IDs are discarded separately from empty queue handling
 - broad transitional exception handling exists at workflow boundaries
 ```
 
@@ -513,7 +515,6 @@ Retry/backoff and DLQ behavior remain planned for v0.6.2 and v0.6.3.
 
 Current and planned next steps:
 
-- `v0.6.1` - failure handling
 - `v0.6.2` - retry/backoff simulation
 - `v0.6.3` - local DLQ simulation
 - `v0.7.0` - tests
