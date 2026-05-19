@@ -39,17 +39,21 @@ class InventoryService:
     def reserve_inventory(self, order: Order) -> None:
         inventory = self.repo.list_inventory()
 
+        items_to_reserve = []
         for item in order.items:
             sku = item.sku
             quantity = item.quantity
             if self.has_available_stock(inventory, sku, quantity):
-                self.reserve_inventory_item(inventory, order, sku, quantity)
+                items_to_reserve.append((sku, quantity))
 
             else:
-                self.fail_inventory_reservation(inventory, order, sku)  # else fail
-                break  # potential problem to solve what happens if stock is available for many items
-                # and missing only for 1 item
-                # solution: checks can be done in the future before placing item into cart
+                self.fail_inventory_reservation(inventory, order, sku)
+
+                break
+
+        if order.steps.inventory != "FAILED":
+            for sku, quantity in items_to_reserve:
+                self.reserve_inventory_item(inventory, order, sku, quantity)
 
         self.repo.save_inventory(inventory)
 
