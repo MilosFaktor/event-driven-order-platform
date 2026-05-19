@@ -39,6 +39,12 @@ class ProcessingQueueService:
     def list_processing_queue(self) -> ProcessingQueue:
         return self.repo.list_processing_queue()
 
+    def get_first_queue_item(self) -> str | None:
+        queue: ProcessingQueue = self.repo.list_processing_queue()
+        if self.queue_empty(queue):
+            return None
+        return queue.root[0]
+
     def not_queue_empty(self) -> bool:
         return bool(self.repo.list_processing_queue().root)
 
