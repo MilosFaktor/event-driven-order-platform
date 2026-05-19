@@ -18,7 +18,9 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current work: `v0.6.0`
+Current completed version: `v0.6.1`
+
+Next planned work: `v0.6.2` retry/backoff simulation.
 
 The current local version includes:
 
@@ -40,6 +42,11 @@ The current local version includes:
 - JSON adapters that own storage serialization and Pydantic validation
 - lightweight dependency container for top-level service wiring
 - typed service/repository/model boundaries for the current local flow
+- workflow classes for worker and order-processing orchestration
+- explicit workflow failure state with `failure_step` and `failure_reason`
+- controlled inventory reservation failure handling without partial stock mutation
+- payment failure handling that releases reserved inventory
+- stale queued order handling for missing order IDs
 - order processing pipeline:
   - reserve inventory
   - capture mock payment
@@ -62,6 +69,7 @@ Worker
   -> invokes workflow service
   -> loads order through service/repository/adapter boundaries
   -> processes order workflow
+  -> records controlled workflow failure state when a business step fails
   -> persists updated state to JSON
 ```
 
@@ -102,10 +110,19 @@ Repository/adapter direction:
 API / worker runtime
 -> workflows
 -> services
--> repository
--> JSON adapter
+-> repositories
+-> adapters
 -> json_storage
 -> data/*.json
+```
+
+Current failure-handling direction:
+
+```text
+service step failure
+-> order-processing workflow records failure_step and failure_reason
+-> failed order state is saved
+-> retry/backoff and DLQ behavior come later
 ```
 
 Local storage files:
@@ -160,6 +177,7 @@ The local implementation is designed to map to AWS later:
 | JSON invoices | S3 / DynamoDB metadata |
 | JSON notifications | SNS / notification records |
 | Worker process | Lambda worker |
+| stdout logs | CloudWatch Logs |
 
 ## Run Locally
 
@@ -244,10 +262,8 @@ GitHub Actions currently runs Ruff checks, and the `main` branch is protected so
 
 ## Roadmap
 
-Current and planned versions:
+Planned next versions:
 
-
-- `v0.6.1` - failure handling
 - `v0.6.2` - retry/backoff simulation
 - `v0.6.3` - local DLQ simulation
 - `v0.7.0` - tests
