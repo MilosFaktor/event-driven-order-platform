@@ -113,6 +113,11 @@ def worker_process_next_order():
     if result is None:
         logger.info("manual_worker_process_next_empty_queue")
         raise HTTPException(status_code=200, detail="No orders to process")
+
+    elif result == "stale_queue_discarded":
+        logger.warning("manual_worker_process_next_stale_queue_discarded")
+        raise HTTPException(status_code=200, detail="Stale queue discarded")
+
     logger.info(
         "manual_worker_process_next_finished order_id=%s status=%s",
         result.order_id,
