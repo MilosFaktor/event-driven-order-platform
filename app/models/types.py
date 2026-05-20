@@ -1,4 +1,12 @@
+from enum import StrEnum
 from typing import Literal
 
 Currency = Literal["USD", "EUR"]
-FailureStep = Literal["INVENTORY", "PAYMENT", "INVOICE", "NOTIFICATION", "UNKNOWN"]
+
+
+class FailureStep(StrEnum):
+    RESERVE_INVENTORY = "RESERVE_INVENTORY"
+    CAPTURE_PAYMENT = "CAPTURE_PAYMENT"
+    FINALIZE_INVENTORY_SALE = "FINALIZE_INVENTORY_SALE"
+    CREATE_INVOICE = "CREATE_INVOICE"
+    SEND_NOTIFICATION = "SEND_NOTIFICATION"

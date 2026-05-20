@@ -1,4 +1,5 @@
 from app.core.logging_config import get_logger
+from app.exceptions import NotificationSendError
 from app.models.notifications import Notification, Notifications
 from app.models.order import Order
 from app.repositories.notification_repository import NotificationRepository
@@ -11,7 +12,7 @@ class NotificationService:
         self.repo = repo or NotificationRepository()
 
     def mark_notification_sent(self, order):
-        order.steps.notification = "SENT"
+        order.steps.send_notification = "SENT"
         logger.debug(
             "order_notification_step_updated order_id=%s",
             order.order_id,
@@ -19,10 +20,13 @@ class NotificationService:
 
     def failed_send_notification_mock(self, order: Order) -> None:
         # notification mock
-        order.steps.notification = "FAILED"
+        order.steps.send_notification = "FAILED"
         logger.info(
             "notification_send_failed order_id=%s",
             order.order_id,
+        )
+        raise NotificationSendError(
+            f"Notification sending failed for order {order.order_id}"
         )
 
     def send_notification(self, order: Order) -> Notification:

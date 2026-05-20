@@ -1,5 +1,7 @@
 from app.core.config import Settings
 from app.core.logging_config import get_logger
+from app.exceptions import NotificationSendError, PaymentCaptureError
+from app.models.types import FailureStep
 from app.services.inventory_service import InventoryService
 from app.services.invoice_service import InvoiceService
 from app.services.notification_service import NotificationService
@@ -35,15 +37,6 @@ class OrderPipelineService:
             status,
         )
 
-    def order_failed_at_step(self, order, step):
-        order_steps = {
-            "INVENTORY": order.steps.inventory,
-            "PAYMENT": order.steps.payment,
-            "INVOICE": order.steps.invoice,
-            "NOTIFICATION": order.steps.notification,
-        }
-        return order_steps[step] == "FAILED"
-
     def fail_order(self, order, failure_step, failure_reason):
         order.status = "FAILED"
         order.failure_step = failure_step
@@ -54,6 +47,115 @@ class OrderPipelineService:
             failure_step,
             failure_reason,
         )
+
+    def reserve_inventory_step(self, order, order_id):
+        logger.info("inventory_reservation_started order_id=%s", order_id)
+
+        self.inventory_service.reserve_inventory(order)
+
+        if order.steps.reserve_inventory == "FAILED":
+            self.fail_order(
+                order,
+                FailureStep.RESERVE_INVENTORY,
+                order.failure_reason or "Inventory reservation failed",
+            )
+            self.order_service.save_order(order)
+            self.order_service.log_order_state(order)
+            logger.warning("inventory_reservation_failed order_id=%s", order_id)
+            return order
+
+        self.order_service.save_order(order)
+        self.order_service.log_order_state(order)
+
+        return order
+
+    def capture_payment_step(self, order, order_id):
+        logger.info("payment_capture_started order_id=%s", order_id)
+
+        try:
+            # Manual retry testing:
+            # self.payment_service.failed_capture_payment_mock(order)
+
+            self.payment_service.capture_payment_mock(order)
+
+        except PaymentCaptureError:
+            logger.warning("payment_capture_failed order_id=%s", order_id)
+            self.fail_order(
+                order, FailureStep.CAPTURE_PAYMENT, "Payment capture failed"
+            )
+
+            logger.info("inventory_release_started order_id=%s", order_id)
+            self.inventory_service.release_order_inventory(order)
+
+            self.order_service.save_order(order)
+            self.order_service.log_order_state(order)
+            return order
+
+        self.order_service.save_order(order)
+        self.order_service.log_order_state(order)
+        return order
+
+    def finalize_inventory_sale_step(self, order, order_id):
+        logger.info("inventory_sale_finalization_started order_id=%s", order_id)
+
+        try:
+            self.inventory_service.finalize_inventory_sale(order)
+        except Exception:  # catches everything here for now
+            self.fail_order(
+                order,
+                FailureStep.FINALIZE_INVENTORY_SALE,
+                "Inventory finalization failed",
+            )
+            self.order_service.save_order(order)
+            self.order_service.log_order_state(order)
+            logger.warning("inventory_sale_finalization_failed order_id=%s", order_id)
+            return order
+
+        self.order_service.save_order(order)
+        self.order_service.log_order_state(order)
+        return order
+
+    def create_invoice_step(self, order, order_id):
+        logger.info("invoice_creation_started order_id=%s", order_id)
+
+        try:
+            self.invoice_service.create_invoice(order)
+        except Exception:  # catches everything here for now
+            self.fail_order(
+                order, FailureStep.CREATE_INVOICE, "Invoice creation failed"
+            )
+            self.order_service.save_order(order)
+            self.order_service.log_order_state(order)
+            logger.warning("invoice_creation_failed order_id=%s", order_id)
+            return order
+
+        self.order_service.save_order(order)
+        self.order_service.log_order_state(order)
+        return order
+
+    def send_notification_step(self, order, order_id):
+        logger.info("notification_send_started order_id=%s", order_id)
+
+        try:
+            # Manual retry testing:
+            # self.notification_service.failed_send_notification_mock(order)
+
+            self.notification_service.send_notification(order)
+
+        except NotificationSendError:
+            self.fail_order(
+                order, FailureStep.SEND_NOTIFICATION, "Notification sending failed"
+            )
+
+            self.order_service.save_order(order)
+            self.order_service.log_order_state(order)
+
+            logger.warning("notification_send_failed order_id=%s", order_id)
+            return order
+
+        self.order_service.save_order(order)
+        self.order_service.log_order_state(order)
+        return order
 
     def process_order(self, order_id):
         logger.info("order_processing_pipeline_started order_id=%s", order_id)
@@ -90,115 +192,31 @@ class OrderPipelineService:
         self.order_service.log_order_state(order)
 
         # 1. STEP INVENTORY RESERVATION
-        logger.info("inventory_reservation_started order_id=%s", order_id)
-
-        self.inventory_service.reserve_inventory(order)
-
-        if self.order_failed_at_step(order, "INVENTORY"):
-            self.fail_order(
-                order,
-                "INVENTORY",
-                order.failure_reason or "Inventory reservation failed",
-            )
-            self.order_service.save_order(order)
-            self.order_service.log_order_state(order)
-            logger.warning("inventory_reservation_failed order_id=%s", order_id)
+        order = self.reserve_inventory_step(order, order_id)
+        if order.status == "FAILED":
             return order
-
-        self.order_service.save_order(order)
-        self.order_service.log_order_state(order)
 
         # 2. STEP PAYMENT | RETRYABLE in v0.6.2
-        logger.info("payment_capture_started order_id=%s", order_id)
-
-        # self.payment_service.failed_capture_payment_mock(order)
-
-        # if self.order_failed_at_step(order, "PAYMENT"):
-        #     logger.warning("payment_capture_failed order_id=%s", order_id)
-        #     self.fail_order(order, "PAYMENT", "Payment capture failed")
-
-        #     self.order_service.save_order(order)
-        #     self.order_service.log_order_state(order)
-
-        #     return order
-
-        try:
-            self.payment_service.capture_payment_mock(order)
-        except Exception:  # catches everything here for now
-            logger.warning("payment_capture_failed order_id=%s", order_id)
-            self.fail_order(order, "PAYMENT", "Payment capture failed")
-
-            logger.info("inventory_release_started order_id=%s", order_id)
-            self.inventory_service.release_order_inventory(order)
-
-            self.order_service.save_order(order)
-            self.order_service.log_order_state(order)
+        order = self.capture_payment_step(order, order_id)
+        if order.status == "FAILED":
             return order
-
-        self.order_service.save_order(order)
-        self.order_service.log_order_state(order)
 
         # 3. STEP INVENTORY FINALIZATION
-        logger.info("inventory_sale_finalization_started order_id=%s", order_id)
-
-        try:
-            self.inventory_service.finalize_inventory_sale(order)
-        except Exception:  # catches everything here for now
-            self.fail_order(order, "INVENTORY", "Inventory finalization failed")
-            self.order_service.save_order(order)
-            self.order_service.log_order_state(order)
-            logger.warning("inventory_sale_finalization_failed order_id=%s", order_id)
+        order = self.finalize_inventory_sale_step(order, order_id)
+        if order.status == "FAILED":
             return order
-
-        self.order_service.save_order(order)
-        self.order_service.log_order_state(order)
 
         # 4. STEP INVOICE
-        logger.info("invoice_creation_started order_id=%s", order_id)
-
-        try:
-            self.invoice_service.create_invoice(order)
-        except Exception:  # catches everything here for now
-            self.fail_order(order, "INVOICE", "Invoice creation failed")
-            self.order_service.save_order(order)
-            self.order_service.log_order_state(order)
-            logger.warning("invoice_creation_failed order_id=%s", order_id)
+        order = self.create_invoice_step(order, order_id)
+        if order.status == "FAILED":
             return order
-
-        self.order_service.save_order(order)
-        self.order_service.log_order_state(order)
 
         # what happens if invoice hasn't been created / solution retry logic
 
         # 5. STEP NOTIFICATION | RETRYABLE in v0.6.2
-        logger.info("notification_send_started order_id=%s", order_id)
-
-        #
-        # self.notification_service.failed_send_notification_mock(order)
-
-        # if self.order_failed_at_step(order, "NOTIFICATION"):
-        #     logger.warning("notification_send_failed order_id=%s", order_id)
-        #     self.fail_order(order, "NOTIFICATION", "Notification sending failed")
-
-        #     self.order_service.save_order(order)
-        #     self.order_service.log_order_state(order)
-
-        #     return order
-
-        try:
-            self.notification_service.send_notification(order)
-        except Exception:  # catches everything here for now
-            self.fail_order(order, "NOTIFICATION", "Notification sending failed")
-
-            self.order_service.save_order(order)
-            self.order_service.log_order_state(order)
-
-            logger.warning("notification_send_failed order_id=%s", order_id)
+        order = self.send_notification_step(order, order_id)
+        if order.status == "FAILED":
             return order
-
-        self.order_service.save_order(order)
-        self.order_service.log_order_state(order)
-        # what happens if notification hasn't been sent / solution retry logic
 
         self.mark_order_status(order, "COMPLETED")
         self.order_service.save_order(order)

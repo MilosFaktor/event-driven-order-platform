@@ -2,6 +2,8 @@ import os
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.models.types import FailureStep
+
 MODE = os.getenv("MODE", "example")
 
 ENV_FILES = {
@@ -24,9 +26,9 @@ class Settings(BaseSettings):
     max_processing_attempts: int = 3
     retry_base_delay_seconds: int = 1
     retry_backoff_multiplier: int = 2
-    retryable_failure_steps: set[str] = {
-        "PAYMENT",
-        # "NOTIFICATION",
+    retryable_failure_steps: set[FailureStep] = {
+        FailureStep.CAPTURE_PAYMENT,
+        # FailureStep.SEND_NOTIFICATION,
     }
 
 

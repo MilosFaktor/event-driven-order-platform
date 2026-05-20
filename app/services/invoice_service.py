@@ -17,7 +17,7 @@ class InvoiceService:
         self.invoice_repo = invoice_repo or InvoiceRepository()
 
     def mark_invoice_created(self, order):
-        order.steps.invoice = "CREATED"
+        order.steps.create_invoice = "CREATED"
         logger.debug("order_invoice_step_updated order_id=%s", order.order_id)
 
     def create_invoice_items_snapshot(self, order: Order) -> list[InvoiceItem]:

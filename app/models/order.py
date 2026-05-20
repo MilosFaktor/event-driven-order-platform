@@ -26,12 +26,11 @@ class OrderSteps(BaseModel):
         extra="forbid", validate_assignment=True, str_strip_whitespace=True
     )
 
-    inventory: Literal["PENDING", "FINALIZED", "RELEASED", "RESERVED", "FAILED"] = (
-        "PENDING"
-    )
-    payment: Literal["PENDING", "CAPTURED", "FAILED"] = "PENDING"
-    invoice: Literal["PENDING", "CREATED", "FAILED"] = "PENDING"
-    notification: Literal["PENDING", "SENT", "FAILED"] = "PENDING"
+    reserve_inventory: Literal["PENDING", "RESERVED", "RELEASED", "FAILED"] = "PENDING"
+    capture_payment: Literal["PENDING", "CAPTURED", "FAILED"] = "PENDING"
+    finalize_inventory_sale: Literal["PENDING", "FINALIZED", "FAILED"] = "PENDING"
+    create_invoice: Literal["PENDING", "CREATED", "FAILED"] = "PENDING"
+    send_notification: Literal["PENDING", "SENT", "FAILED"] = "PENDING"
 
 
 class Order(BaseModel):
