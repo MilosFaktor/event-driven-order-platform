@@ -1,7 +1,7 @@
 .PHONY: check format lint run api api-create-order-1 api-create-order-2 \
 	api-get-orders api-get-idem-keys api-get-inventory worker api-get-q \
 	worker-process-next sandbox api-get-ntfs api-get-invoices storage-reset \
-	api-local api-prod worker-local worker-prod loc-app
+	api-local api-prod worker-local worker-prod loc-app sandbox-local
 
 check:
 	uv run ruff check .
@@ -22,6 +22,9 @@ run:
 sandbox:
 	uv run python -m experiments.order_pipeline_sandbox
 
+sandbox-local:
+	MODE=local uv run python -m experiments.order_pipeline_sandbox
+
 worker:
 	uv run python -m app.workers.order_worker
 
@@ -29,16 +32,16 @@ api:
 	uv run uvicorn app.api.main:app --reload
 
 api-local:
-	ENV_FILE=.env.local uv run uvicorn app.api.main:app --reload
+	MODE=local uv run uvicorn app.api.main:app --reload
 
 api-prod:
-	ENV_FILE=.env.prod uv run uvicorn app.api.main:app
+	MODE=prod uv run uvicorn app.api.main:app
 
 worker-local:
-	ENV_FILE=.env.local uv run python -m app.workers.order_worker
+	MODE=local uv run python -m app.workers.order_worker
 
 worker-prod:
-	ENV_FILE=.env.prod uv run python -m app.workers.order_worker
+	MODE=prod uv run python -m app.workers.order_worker
 
 api-create-order-1:
 	curl -X POST http://127.0.0.1:8000/v1/orders \

@@ -5,120 +5,98 @@ This file is for exploring workflow logic before moving it into app/services.
 The production app should not import from this file.
 """
 
-import json
+import time
 
-from app.services.inventory_service import (
-    finalize_inventory_sale,
-    get_inventory,
-    release_order_inventory,
-    reserve_inventory,
-)
-from app.services.invoice_service import create_invoice, get_invoices
-from app.services.notification_service import get_notifications, send_notification
+from app.core.config import Settings
+from app.core.logging_config import configure_logging_worker, get_logger
+from app.services.queue_service import ProcessingQueueService
+from app.workflows.order_pipeline_service import OrderPipelineService
 
-orders = {}
+configure_logging_worker()
+logger = get_logger("sandbox.runtime")
 
 
-def create_order_sand():
-    order_id = "ord_" + "test"
-    orders[order_id] = {
-        "order_id": order_id,
-        "customer_id": "cust_123",
-        "items": [{"sku": "SKU-001", "quantity": 2}, {"sku": "SKU-002", "quantity": 1}],
-        "currency": "EUR",
-        "status": "PENDING",
-        "steps": {
-            "inventory": "PENDING",
-            "payment": "PENDING",
-            "invoice": "PENDING",
-            "notification": "PENDING",
-        },
-        "failure_reason": None,
-    }
+class Sandbox:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        queue_service: ProcessingQueueService | None = None,
+        order_pipeline_service: OrderPipelineService | None = None,
+    ):
+        self.settings = settings or Settings()
+        self.queue_service = queue_service or ProcessingQueueService()
+        self.order_pipeline_service = order_pipeline_service or OrderPipelineService(
+            settings=self.settings
+        )
 
-    return orders[order_id]
+    def calculate_retry_delay_seconds(self, attempt: int) -> int:
+        return self.settings.retry_base_delay_seconds * (
+            self.settings.retry_backoff_multiplier ** (attempt - 1)
+        )
 
+    def exponential_backoff(self):
+        for attempt in range(1, self.settings.max_processing_attempts + 1):
+            print(f"Attempt {attempt} of {self.settings.max_processing_attempts}")
 
-# ============== payment_service.py =================
+            failed = True
 
+            if not failed:
+                print("Success")
+                break
 
-def payment_captured_mock(order):
-    # payment mock
-    print("Payment captured successfully")
-    order["steps"]["payment"] = "CAPTURED"
+            if attempt == self.settings.max_processing_attempts:
+                print("Max attempts reached")  # v0.6.3 - DLQ
+                break
 
+            delay_seconds = self.calculate_retry_delay_seconds(attempt)
+            print(f"Retrying in {delay_seconds} seconds")
+            time.sleep(delay_seconds)
 
-def is_payment_captured(order):
-    return order["steps"]["payment"] == "CAPTURED"
+    def process_next_order(self):
+        order_id = self.queue_service.get_first_queue_item()
+        if order_id is None:
+            logger.warning("no_order_to_process")
+            return None
+        logger.info("order_processing_started order_id=%s", order_id)
 
+        for attempt in range(1, self.settings.max_processing_attempts + 1):
+            print(f"Attempt {attempt} of {self.settings.max_processing_attempts}")
 
-# ============= order_service.py ===============
+            processed_order = self.order_pipeline_service.process_order(order_id)
 
+            if processed_order is None:
+                self.queue_service.dequeue_order()
+                logger.warning("stale_queue_message_discarded order_id=%s", order_id)
+                return "stale_queue_discarded"
 
-def order_is_completed(order):
-    return order["status"] == "COMPLETED"
+            if processed_order.status == "COMPLETED":
+                self.queue_service.dequeue_order()
+                logger.info("order_processing_finished order_id=%s", order_id)
+                return processed_order
 
+            if processed_order.status == "FAILED":
+                if (
+                    processed_order.failure_step
+                    in self.settings.retryable_failure_steps
+                ):
+                    if attempt == self.settings.max_processing_attempts:
+                        print("Max attempts reached")  # v0.6.3 - DLQ
+                        self.queue_service.dequeue_order()
+                        return processed_order
 
-def mark_order_processing(order):
-    order["status"] = "PROCESSING"
+                    delay_seconds = self.calculate_retry_delay_seconds(attempt)
+                    print(f"Retrying in {delay_seconds} seconds")
+                    time.sleep(delay_seconds)
+                    continue
 
-
-def mark_order_completed(order):
-    order["status"] = "COMPLETED"
-
-
-def order_failed(order):
-    return order["status"] == "FAILED"
-
-
-def mark_order_failed(order):
-    order["status"] = "FAILED"
-
-
-# ============================================
-
-
-def process_order_sand(order_id):
-    order = orders[order_id]
-
-    if order_is_completed(order):
-        return order
-
-    mark_order_processing(order)
-    reserve_inventory(order)
-
-    if order_failed(order):
-        return order
-
-    payment_captured_mock(order)
-
-    if is_payment_captured(order):
-        finalize_inventory_sale(order)
-    else:
-        mark_order_failed(order)
-        release_order_inventory(order)
-        return order
-
-    if order_failed(order):
-        return order
-
-    create_invoice(order)
-    # what happens if invoice hasn't been created / solution retry logic
-
-    send_notification(order)
-    # what happens if notification hasn't been sent / solution retry logic
-
-    mark_order_completed(order)
-
-    return order
+                self.queue_service.dequeue_order()
+                logger.info(
+                    "order_processing_finished_non_retryable_failure order_id=%s failure_step=%s",
+                    order_id,
+                    processed_order.failure_step,
+                )
+                return processed_order
 
 
-order = create_order_sand()
-print(json.dumps(order, indent=2))
-print(process_order_sand("ord_test"))
-print(json.dumps(order, indent=2))
-print(get_inventory())
-print("INVOICES: ...")
-print(get_invoices())
-print("NOTIFICATIONS: ...")
-print(get_notifications())
+sandbox = Sandbox()
+print(sandbox.process_next_order())

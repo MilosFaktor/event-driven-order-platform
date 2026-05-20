@@ -17,6 +17,14 @@ class NotificationService:
             order.order_id,
         )
 
+    def failed_send_notification_mock(self, order: Order) -> None:
+        # notification mock
+        order.steps.notification = "FAILED"
+        logger.info(
+            "notification_send_failed order_id=%s",
+            order.order_id,
+        )
+
     def send_notification(self, order: Order) -> Notification:
         notifications = self.repo.list_notifications()
         notification_id = f"ntf_{order.order_id}"

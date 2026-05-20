@@ -13,3 +13,8 @@ class PaymentService:
         # payment mock
         self.mark_payment_captured(order)
         logger.info("payment_captured order_id=%s", order.order_id)
+
+    def failed_capture_payment_mock(self, order: Order) -> None:
+        # payment mock
+        order.steps.payment = "FAILED"
+        logger.info("payment_capture_failed order_id=%s", order.order_id)

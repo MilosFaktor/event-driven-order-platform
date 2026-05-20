@@ -1,3 +1,4 @@
+from app.core.config import settings
 from app.services.idempotency_service import IdempotencyKeysService
 from app.services.inventory_service import InventoryService
 from app.services.invoice_service import InvoiceService
@@ -5,6 +6,7 @@ from app.services.notification_service import NotificationService
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 from app.services.queue_service import ProcessingQueueService
+from app.workflows.order_pipeline_service import OrderPipelineService
 from app.workflows.worker_service import WorkerService
 
 
@@ -18,6 +20,7 @@ class AppDependencies:
         self._payment_service = None
         self._queue_service = None
         self._worker_service = None
+        self._order_pipeline_service = None
 
     def idempotency_service(self) -> IdempotencyKeysService:
         if self._idempotency_service is None:
@@ -56,8 +59,17 @@ class AppDependencies:
 
     def worker_service(self) -> WorkerService:
         if self._worker_service is None:
-            self._worker_service = WorkerService()
+            self._worker_service = WorkerService(
+                settings=settings,
+                queue_service=self.queue_service(),
+                order_pipeline_service=self.order_pipeline_service(),
+            )
         return self._worker_service
+
+    def order_pipeline_service(self) -> OrderPipelineService:
+        if self._order_pipeline_service is None:
+            self._order_pipeline_service = OrderPipelineService(settings=settings)
+        return self._order_pipeline_service
 
 
 app_dependencies = AppDependencies()
