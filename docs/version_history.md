@@ -509,14 +509,71 @@ order pipeline orchestrates steps and owns whole-order failure state
 repositories/adapters persist local JSON state
 ```
 
-Retry/backoff and DLQ behavior remain planned for v0.6.2 and v0.6.3.
+## v0.6.2 - Retry / Backoff Simulation Foundation
+
+Goal: add the first local retry/backoff behavior for retryable workflow failures.
+
+Implemented in v0.6.2:
+
+```text
+- retry/backoff settings for max attempts, base delay, multiplier, and retryable steps
+- attempt_count on orders
+- FailureStep enum values aligned with exact pipeline checkpoints
+- OrderSteps fields aligned with exact pipeline checkpoints
+- named payment and notification failure exceptions
+- worker-owned retry/backoff orchestration
+- order-pipeline-owned single-attempt processing
+- ordered pipeline step list
+- step handler map in OrderPipelineService
+- retry start position based on saved failure_step
+- payment failures retry from CAPTURE_PAYMENT
+- notification failures retry from SEND_NOTIFICATION
+- payment failures keep inventory reserved during retry attempts
+- inventory release after payment retries are exhausted
+- pytest coverage for retry delay, happy path, payment retry exhaustion, and notification retry exhaustion
+- GitHub Actions workflow for Ruff and pytest
+```
+
+Current retry behavior:
+
+```text
+completed order -> dequeue and stop
+retryable failed order + attempts remaining -> wait using backoff and retry
+retryable failed order + max attempts reached -> dequeue and stop
+non-retryable failed order -> dequeue and stop
+stale queue message -> dequeue and stop
+```
+
+Current retryable workflow steps:
+
+```text
+CAPTURE_PAYMENT
+SEND_NOTIFICATION
+```
+
+Why it mattered:
+
+This version moved the project from visible failure state into controlled retry
+behavior. The worker now decides whether to retry, while the order pipeline
+decides how one attempt runs and where a retry should resume.
+
+Remaining limitations:
+
+```text
+- DLQ behavior is not implemented yet
+- retry eventual-success cases need more explicit tests
+- inventory finalization and invoice failure handling still use transitional broad catches
+- local queue behavior is still a learning model, not a full SQS visibility-timeout simulation
+```
 
 ## Next Versions
 
 Current and planned next steps:
 
-- `v0.6.2` - retry/backoff simulation
-- `v0.6.3` - local DLQ simulation
-- `v0.7.0` - tests
+- `v0.6.3` - retry polish and eventual-success retry tests
+- `v0.6.4` - pipeline checkpoint / idempotent step refinement
+- `v0.6.5` - stronger resumable pipeline behavior
+- later `v0.6.x` - local DLQ simulation
+- `v0.7.0` - broader tests
 - `v0.8.0` - documentation polish
 - `v1.0.0` - local Phase 1 MVP complete
