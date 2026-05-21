@@ -18,9 +18,9 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current completed version: `v0.6.1`
+Current completed version: `v0.6.2`
 
-Next planned work: `v0.6.2` retry/backoff simulation.
+Next planned work: retry polish, checkpoint refinement, and stronger resumable pipeline behavior.
 
 The current local version includes:
 
@@ -45,11 +45,16 @@ The current local version includes:
 - workflow classes for worker and order-processing orchestration
 - explicit workflow failure state with `failure_step` and `failure_reason`
 - controlled inventory reservation failure handling without partial stock mutation
-- payment failure handling that releases reserved inventory
+- retry/backoff settings for worker processing
+- retryable payment and notification failure handling
+- payment failure inventory release after retry exhaustion
+- retryable failed orders can restart from the failed pipeline step
+- initial pytest coverage for happy path, retry delay, payment retry, and notification retry
 - stale queued order handling for missing order IDs
 - order processing pipeline:
   - reserve inventory
   - capture mock payment
+  - finalize inventory sale
   - create invoice
   - send notification
   - mark order completed
@@ -122,7 +127,8 @@ Current failure-handling direction:
 service step failure
 -> order-processing workflow records failure_step and failure_reason
 -> failed order state is saved
--> retry/backoff and DLQ behavior come later
+-> worker retries configured retryable steps with backoff
+-> DLQ behavior comes later
 ```
 
 Local storage files:
@@ -248,7 +254,7 @@ GET /v1/debug/idempotency-keys
 
 ## Quality Gates
 
-The repository uses Ruff for linting/formatting checks.
+The repository uses Ruff for linting/formatting checks and pytest for behavior tests.
 
 Local commands:
 
@@ -256,16 +262,19 @@ Local commands:
 make check
 make format
 make lint
+make tests
 ```
 
-GitHub Actions currently runs Ruff checks, and the `main` branch is protected so required checks must pass before merging.
+GitHub Actions currently runs Ruff checks and pytest, and the `main` branch is protected so required checks must pass before merging.
 
 ## Roadmap
 
 Planned next versions:
 
-- `v0.6.2` - retry/backoff simulation
-- `v0.6.3` - local DLQ simulation
-- `v0.7.0` - tests
+- `v0.6.3` - retry polish and eventual-success retry tests
+- `v0.6.4` - pipeline checkpoint / idempotent step refinement
+- `v0.6.5` - stronger resumable pipeline behavior
+- later `v0.6.x` - local DLQ simulation
+- `v0.7.0` - broader tests
 - `v0.8.0` - documentation polish
 - `v1.0.0` - local Phase 1 MVP complete

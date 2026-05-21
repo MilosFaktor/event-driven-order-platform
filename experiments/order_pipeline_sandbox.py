@@ -5,120 +5,139 @@ This file is for exploring workflow logic before moving it into app/services.
 The production app should not import from this file.
 """
 
-import json
+from app.core.config import Settings
+from app.core.logging_config import get_logger
+from app.models.order import OrderItem
+from app.models.orders_request import CreateOrderRequest, OrderItemRequest
+from app.models.types import FailureStep
+from app.services.order_service import OrderService
+from app.workflows.order_pipeline_service import OrderPipelineService
+from scripts.reset_json_data import storage_reset
 
-from app.services.inventory_service import (
-    finalize_inventory_sale,
-    get_inventory,
-    release_order_inventory,
-    reserve_inventory,
-)
-from app.services.invoice_service import create_invoice, get_invoices
-from app.services.notification_service import get_notifications, send_notification
+logger = get_logger("sandbox.pipeline")
 
-orders = {}
-
-
-def create_order_sand():
-    order_id = "ord_" + "test"
-    orders[order_id] = {
-        "order_id": order_id,
-        "customer_id": "cust_123",
-        "items": [{"sku": "SKU-001", "quantity": 2}, {"sku": "SKU-002", "quantity": 1}],
-        "currency": "EUR",
-        "status": "PENDING",
-        "steps": {
-            "inventory": "PENDING",
-            "payment": "PENDING",
-            "invoice": "PENDING",
-            "notification": "PENDING",
-        },
-        "failure_reason": None,
-    }
-
-    return orders[order_id]
+PIPELINE_STEPS = [
+    FailureStep.RESERVE_INVENTORY,
+    FailureStep.CAPTURE_PAYMENT,
+    FailureStep.FINALIZE_INVENTORY_SALE,
+    FailureStep.CREATE_INVOICE,
+    FailureStep.SEND_NOTIFICATION,
+]
 
 
-# ============== payment_service.py =================
+class Sandbox(OrderPipelineService):
+    def get_start_step(self, order):
+        if (
+            order.status == "FAILED"
+            and order.failure_step in self.settings.retryable_failure_steps
+        ):
+            return order.failure_step
 
+        return PIPELINE_STEPS[0]
 
-def payment_captured_mock(order):
-    # payment mock
-    print("Payment captured successfully")
-    order["steps"]["payment"] = "CAPTURED"
+    def get_steps_from(self, start_step):
+        start_step_index = PIPELINE_STEPS.index(start_step)
+        return PIPELINE_STEPS[start_step_index:]
 
+    def process_order(self, order_id):
 
-def is_payment_captured(order):
-    return order["steps"]["payment"] == "CAPTURED"
+        step_handlers = {
+            FailureStep.RESERVE_INVENTORY: self.reserve_inventory_step,
+            FailureStep.CAPTURE_PAYMENT: self.capture_payment_step,
+            FailureStep.FINALIZE_INVENTORY_SALE: self.finalize_inventory_sale_step,
+            FailureStep.CREATE_INVOICE: self.create_invoice_step,
+            FailureStep.SEND_NOTIFICATION: self.send_notification_step,
+        }
 
+        logger.info("order_processing_pipeline_started order_id=%s", order_id)
 
-# ============= order_service.py ===============
+        order = self.order_service.get_order(order_id)
 
+        if order is None:
+            logger.warning("queued_order_not_found order_id=%s", order_id)
+            return None
 
-def order_is_completed(order):
-    return order["status"] == "COMPLETED"
+        if self.order_service.order_being_processed(order):
+            logger.info("order_already_being_processed order_id=%s", order_id)
+            return order
 
+        if self.order_service.order_is_completed(order):
+            logger.info("order_already_completed order_id=%s", order_id)
+            return order
 
-def mark_order_processing(order):
-    order["status"] = "PROCESSING"
+        if self.order_service.order_failed(order):
+            if order.failure_step not in self.settings.retryable_failure_steps:
+                logger.info("order_already_failed order_id=%s", order_id)
+                return order
 
+            logger.info(
+                "retryable_failed_order_reprocessing order_id=%s failure_step=%s",
+                order_id,
+                order.failure_step,
+            )
 
-def mark_order_completed(order):
-    order["status"] = "COMPLETED"
+        start_step = self.get_start_step(order)
 
+        order.attempt_count += 1
+        self.mark_order_status(order, "PROCESSING")
+        self.order_service.save_order(order)
+        self.order_service.log_order_state(order)
 
-def order_failed(order):
-    return order["status"] == "FAILED"
+        for step in self.get_steps_from(start_step):
+            order = step_handlers[step](order, order_id)
+            if order.status == "FAILED":
+                return order
 
+        self.mark_order_status(order, "COMPLETED")
+        self.order_service.save_order(order)
+        logger.info(
+            "order_processing_pipeline_finished order_id=%s status=COMPLETED", order_id
+        )
+        self.order_service.log_order_state(order)
 
-def mark_order_failed(order):
-    order["status"] = "FAILED"
-
-
-# ============================================
-
-
-def process_order_sand(order_id):
-    order = orders[order_id]
-
-    if order_is_completed(order):
         return order
 
-    mark_order_processing(order)
-    reserve_inventory(order)
 
-    if order_failed(order):
-        return order
+def run_resumable_order_pipeline():
+    settings = Settings(
+        max_processing_attempts=4,
+        retry_base_delay_seconds=1,
+        retry_backoff_multiplier=2,
+    )
+    request = CreateOrderRequest(
+        customer_id="cust_123",
+        items=[
+            OrderItemRequest(
+                sku="SKU-001",
+                quantity=2,
+            ),
+            OrderItemRequest(
+                sku="SKU-002",
+                quantity=1,
+            ),
+        ],
+        currency="EUR",
+    )
 
-    payment_captured_mock(order)
+    storage_reset()
 
-    if is_payment_captured(order):
-        finalize_inventory_sale(order)
-    else:
-        mark_order_failed(order)
-        release_order_inventory(order)
-        return order
+    order_service = OrderService()
 
-    if order_failed(order):
-        return order
+    order_service.create_order(
+        order_id="ord_123",
+        customer_id=request.customer_id,
+        items=[
+            OrderItem(sku=item.sku, quantity=item.quantity) for item in request.items
+        ],
+        currency=request.currency,
+    )
 
-    create_invoice(order)
-    # what happens if invoice hasn't been created / solution retry logic
+    order_pipeline = Sandbox(settings=settings)
 
-    send_notification(order)
-    # what happens if notification hasn't been sent / solution retry logic
+    processed_order = order_pipeline.process_order("ord_123")
+    print(processed_order)
 
-    mark_order_completed(order)
-
-    return order
+    storage_reset()
 
 
-order = create_order_sand()
-print(json.dumps(order, indent=2))
-print(process_order_sand("ord_test"))
-print(json.dumps(order, indent=2))
-print(get_inventory())
-print("INVOICES: ...")
-print(get_invoices())
-print("NOTIFICATIONS: ...")
-print(get_notifications())
+run_resumable_order_pipeline()

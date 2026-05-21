@@ -1,3 +1,6 @@
+import time
+
+from app.core.config import Settings
 from app.core.logging_config import get_logger
 from app.services.queue_service import ProcessingQueueService
 from app.workflows.order_pipeline_service import OrderPipelineService
@@ -8,11 +11,19 @@ logger = get_logger("worker.service")
 class WorkerService:
     def __init__(
         self,
-        queue_service: ProcessingQueueService | None = None,
-        order_pipeline_service: OrderPipelineService | None = None,
+        settings: Settings,
+        queue_service: ProcessingQueueService,
+        order_pipeline_service: OrderPipelineService,
     ):
-        self.queue_service = queue_service or ProcessingQueueService()
-        self.order_pipeline_service = order_pipeline_service or OrderPipelineService()
+        self.settings = settings
+
+        self.queue_service = queue_service
+        self.order_pipeline_service = order_pipeline_service
+
+    def calculate_retry_delay_seconds(self, attempt: int) -> int:
+        return self.settings.retry_base_delay_seconds * (
+            self.settings.retry_backoff_multiplier ** (attempt - 1)
+        )
 
     def process_next_order(self):
         order_id = self.queue_service.get_first_queue_item()
@@ -20,17 +31,59 @@ class WorkerService:
             logger.warning("no_order_to_process")
             return None
         logger.info("order_processing_started order_id=%s", order_id)
-        processed_order = self.order_pipeline_service.process_order(order_id)
 
-        if processed_order is None:
-            self.queue_service.dequeue_order()  # dequeue after finding stale queue
-            logger.warning("stale_queue_message_discarded order_id=%s", order_id)
-            return "stale_queue_discarded"
+        for attempt in range(1, self.settings.max_processing_attempts + 1):
+            logger.info(
+                "order_processing_attempt_started order_id=%s attempt=%s max_attempts=%s",
+                order_id,
+                attempt,
+                self.settings.max_processing_attempts,
+            )
 
-        self.queue_service.dequeue_order()  # dequeue after successful processing
-        logger.info("order_processing_finished order_id=%s", order_id)
+            processed_order = self.order_pipeline_service.process_order(order_id)
 
-        return processed_order
+            if processed_order is None:
+                self.queue_service.dequeue_order()
+                logger.warning("stale_queue_message_discarded order_id=%s", order_id)
+                return "stale_queue_discarded"
+
+            if processed_order.status == "COMPLETED":
+                self.queue_service.dequeue_order()
+                logger.info("order_processing_finished order_id=%s", order_id)
+                return processed_order
+
+            if processed_order.status == "FAILED":
+                if (
+                    processed_order.failure_step
+                    in self.settings.retryable_failure_steps
+                ):
+                    if attempt == self.settings.max_processing_attempts:
+                        logger.warning(
+                            "max_processing_attempts_reached order_id=%s attempt=%s max_attempts=%s",
+                            order_id,
+                            attempt,
+                            self.settings.max_processing_attempts,
+                        )
+                        self.queue_service.dequeue_order()
+                        return processed_order
+
+                    delay_seconds = self.calculate_retry_delay_seconds(attempt)
+                    logger.info(
+                        "order_retry_scheduled order_id=%s attempt=%s retry_delay_seconds=%s",
+                        order_id,
+                        attempt,
+                        delay_seconds,
+                    )
+                    time.sleep(delay_seconds)
+                    continue
+
+                self.queue_service.dequeue_order()
+                logger.info(
+                    "order_processing_finished_non_retryable_failure order_id=%s failure_step=%s",
+                    order_id,
+                    processed_order.failure_step,
+                )
+                return processed_order
 
     def has_work(self) -> bool:
         return self.queue_service.not_queue_empty()

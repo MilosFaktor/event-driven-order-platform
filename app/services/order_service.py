@@ -36,13 +36,14 @@ class OrderService:
     def log_order_state(self, order: Order) -> None:
         steps = order.steps
         logger.debug(
-            "order_saved order_id=%s status=%s steps=(inventory=%s payment=%s invoice=%s notification=%s)",
+            "order_saved order_id=%s status=%s steps=(reserve_inventory=%s capture_payment=%s finalize_inventory_sale=%s create_invoice=%s send_notification=%s)",
             order.order_id,
             order.status,
-            steps.inventory,
-            steps.payment,
-            steps.invoice,
-            steps.notification,
+            steps.reserve_inventory,
+            steps.capture_payment,
+            steps.finalize_inventory_sale,
+            steps.create_invoice,
+            steps.send_notification,
         )
 
     def generate_order_id(self) -> str:
