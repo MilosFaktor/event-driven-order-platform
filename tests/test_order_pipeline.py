@@ -1,8 +1,9 @@
 from app.core.config import Settings
-from app.exceptions import PaymentCaptureError
+from app.exceptions import NotificationSendError, PaymentCaptureError
 from app.models.order import OrderItem
 from app.models.orders_request import CreateOrderRequest, OrderItemRequest
 from app.models.types import FailureStep
+from app.services.notification_service import NotificationService
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 from app.workflows.order_pipeline_service import OrderPipelineService
@@ -117,6 +118,9 @@ def test_payment_failure_retries_and_releases_inventory():
             max_processing_attempts=2,
             retry_base_delay_seconds=0,
             retry_backoff_multiplier=2,
+            retryable_failure_steps={
+                FailureStep.CAPTURE_PAYMENT,
+            },
         )
 
         order_id = "ord_retry1"
@@ -151,6 +155,63 @@ def test_payment_failure_retries_and_releases_inventory():
         assert processed_order.attempt_count == 2
         assert processed_order.steps.capture_payment == "FAILED"
         assert processed_order.steps.reserve_inventory == "RELEASED"
+
+    finally:
+        storage_reset()
+
+
+class AlwaysFailNotificationService(NotificationService):
+    def send_notification(self, order):
+        order.steps.send_notification = "FAILED"
+        raise NotificationSendError(
+            f"Notification sending failed for order {order.order_id}"
+        )
+
+
+def test_notification_failure_retries():
+    storage_reset()
+
+    try:
+        settings = Settings(
+            max_processing_attempts=2,
+            retry_base_delay_seconds=0,
+            retry_backoff_multiplier=2,
+            retryable_failure_steps={
+                FailureStep.SEND_NOTIFICATION,
+            },
+        )
+
+        order_id = "ord_retry1"
+
+        order_service = OrderService()
+        order_service.create_order(
+            order_id=order_id,
+            customer_id="cust_123",
+            items=[
+                OrderItem(sku="SKU-001", quantity=2),
+                OrderItem(sku="SKU-002", quantity=1),
+            ],
+            currency="EUR",
+        )
+
+        pipeline = OrderPipelineService(
+            settings=settings,
+            notification_service=AlwaysFailNotificationService(),
+        )
+
+        worker = WorkerService(
+            settings=settings,
+            queue_service=FakeQueueService(order_id),
+            order_pipeline_service=pipeline,
+        )
+
+        processed_order = worker.process_next_order()
+
+        assert processed_order.status == "FAILED"
+        assert processed_order.failure_step == FailureStep.SEND_NOTIFICATION
+        assert processed_order.failure_reason == "Notification sending failed"
+        assert processed_order.attempt_count == 2
+        assert processed_order.steps.send_notification == "FAILED"
 
     finally:
         storage_reset()

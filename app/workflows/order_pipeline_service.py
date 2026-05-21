@@ -10,6 +10,14 @@ from app.services.payment_service import PaymentService
 
 logger = get_logger("orders.pipeline")
 
+PIPELINE_STEPS = [
+    FailureStep.RESERVE_INVENTORY,
+    FailureStep.CAPTURE_PAYMENT,
+    FailureStep.FINALIZE_INVENTORY_SALE,
+    FailureStep.CREATE_INVOICE,
+    FailureStep.SEND_NOTIFICATION,
+]
+
 
 class OrderPipelineService:
     def __init__(
@@ -85,7 +93,8 @@ class OrderPipelineService:
             )
 
             logger.info("inventory_release_started order_id=%s", order_id)
-            self.inventory_service.release_order_inventory(order)
+            if order.attempt_count == self.settings.max_processing_attempts:
+                self.inventory_service.release_order_inventory(order)
 
             self.order_service.save_order(order)
             self.order_service.log_order_state(order)
@@ -157,7 +166,29 @@ class OrderPipelineService:
         self.order_service.log_order_state(order)
         return order
 
+    def get_start_step(self, order):
+        if (
+            order.status == "FAILED"
+            and order.failure_step in self.settings.retryable_failure_steps
+        ):
+            return order.failure_step
+
+        return PIPELINE_STEPS[0]
+
+    def get_steps_from(self, start_step):
+        start_step_index = PIPELINE_STEPS.index(start_step)
+        return PIPELINE_STEPS[start_step_index:]
+
     def process_order(self, order_id):
+
+        step_handlers = {
+            FailureStep.RESERVE_INVENTORY: self.reserve_inventory_step,
+            FailureStep.CAPTURE_PAYMENT: self.capture_payment_step,
+            FailureStep.FINALIZE_INVENTORY_SALE: self.finalize_inventory_sale_step,
+            FailureStep.CREATE_INVOICE: self.create_invoice_step,
+            FailureStep.SEND_NOTIFICATION: self.send_notification_step,
+        }
+
         logger.info("order_processing_pipeline_started order_id=%s", order_id)
 
         order = self.order_service.get_order(order_id)
@@ -185,38 +216,17 @@ class OrderPipelineService:
                 order.failure_step,
             )
 
-        order.attempt_count += 1
+        start_step = self.get_start_step(order)
 
+        order.attempt_count += 1
         self.mark_order_status(order, "PROCESSING")
         self.order_service.save_order(order)
         self.order_service.log_order_state(order)
 
-        # 1. STEP INVENTORY RESERVATION
-        order = self.reserve_inventory_step(order, order_id)
-        if order.status == "FAILED":
-            return order
-
-        # 2. STEP PAYMENT | RETRYABLE in v0.6.2
-        order = self.capture_payment_step(order, order_id)
-        if order.status == "FAILED":
-            return order
-
-        # 3. STEP INVENTORY FINALIZATION
-        order = self.finalize_inventory_sale_step(order, order_id)
-        if order.status == "FAILED":
-            return order
-
-        # 4. STEP INVOICE
-        order = self.create_invoice_step(order, order_id)
-        if order.status == "FAILED":
-            return order
-
-        # what happens if invoice hasn't been created / solution retry logic
-
-        # 5. STEP NOTIFICATION | RETRYABLE in v0.6.2
-        order = self.send_notification_step(order, order_id)
-        if order.status == "FAILED":
-            return order
+        for step in self.get_steps_from(start_step):
+            order = step_handlers[step](order, order_id)
+            if order.status == "FAILED":
+                return order
 
         self.mark_order_status(order, "COMPLETED")
         self.order_service.save_order(order)

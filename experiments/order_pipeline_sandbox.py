@@ -5,98 +5,139 @@ This file is for exploring workflow logic before moving it into app/services.
 The production app should not import from this file.
 """
 
-import time
-
 from app.core.config import Settings
-from app.core.logging_config import configure_logging_worker, get_logger
-from app.services.queue_service import ProcessingQueueService
+from app.core.logging_config import get_logger
+from app.models.order import OrderItem
+from app.models.orders_request import CreateOrderRequest, OrderItemRequest
+from app.models.types import FailureStep
+from app.services.order_service import OrderService
 from app.workflows.order_pipeline_service import OrderPipelineService
+from scripts.reset_json_data import storage_reset
 
-configure_logging_worker()
-logger = get_logger("sandbox.runtime")
+logger = get_logger("sandbox.pipeline")
+
+PIPELINE_STEPS = [
+    FailureStep.RESERVE_INVENTORY,
+    FailureStep.CAPTURE_PAYMENT,
+    FailureStep.FINALIZE_INVENTORY_SALE,
+    FailureStep.CREATE_INVOICE,
+    FailureStep.SEND_NOTIFICATION,
+]
 
 
-class Sandbox:
-    def __init__(
-        self,
-        settings: Settings | None = None,
-        queue_service: ProcessingQueueService | None = None,
-        order_pipeline_service: OrderPipelineService | None = None,
-    ):
-        self.settings = settings or Settings()
-        self.queue_service = queue_service or ProcessingQueueService()
-        self.order_pipeline_service = order_pipeline_service or OrderPipelineService(
-            settings=self.settings
-        )
+class Sandbox(OrderPipelineService):
+    def get_start_step(self, order):
+        if (
+            order.status == "FAILED"
+            and order.failure_step in self.settings.retryable_failure_steps
+        ):
+            return order.failure_step
 
-    def calculate_retry_delay_seconds(self, attempt: int) -> int:
-        return self.settings.retry_base_delay_seconds * (
-            self.settings.retry_backoff_multiplier ** (attempt - 1)
-        )
+        return PIPELINE_STEPS[0]
 
-    def exponential_backoff(self):
-        for attempt in range(1, self.settings.max_processing_attempts + 1):
-            print(f"Attempt {attempt} of {self.settings.max_processing_attempts}")
+    def get_steps_from(self, start_step):
+        start_step_index = PIPELINE_STEPS.index(start_step)
+        return PIPELINE_STEPS[start_step_index:]
 
-            failed = True
+    def process_order(self, order_id):
 
-            if not failed:
-                print("Success")
-                break
+        step_handlers = {
+            FailureStep.RESERVE_INVENTORY: self.reserve_inventory_step,
+            FailureStep.CAPTURE_PAYMENT: self.capture_payment_step,
+            FailureStep.FINALIZE_INVENTORY_SALE: self.finalize_inventory_sale_step,
+            FailureStep.CREATE_INVOICE: self.create_invoice_step,
+            FailureStep.SEND_NOTIFICATION: self.send_notification_step,
+        }
 
-            if attempt == self.settings.max_processing_attempts:
-                print("Max attempts reached")  # v0.6.3 - DLQ
-                break
+        logger.info("order_processing_pipeline_started order_id=%s", order_id)
 
-            delay_seconds = self.calculate_retry_delay_seconds(attempt)
-            print(f"Retrying in {delay_seconds} seconds")
-            time.sleep(delay_seconds)
+        order = self.order_service.get_order(order_id)
 
-    def process_next_order(self):
-        order_id = self.queue_service.get_first_queue_item()
-        if order_id is None:
-            logger.warning("no_order_to_process")
+        if order is None:
+            logger.warning("queued_order_not_found order_id=%s", order_id)
             return None
-        logger.info("order_processing_started order_id=%s", order_id)
 
-        for attempt in range(1, self.settings.max_processing_attempts + 1):
-            print(f"Attempt {attempt} of {self.settings.max_processing_attempts}")
+        if self.order_service.order_being_processed(order):
+            logger.info("order_already_being_processed order_id=%s", order_id)
+            return order
 
-            processed_order = self.order_pipeline_service.process_order(order_id)
+        if self.order_service.order_is_completed(order):
+            logger.info("order_already_completed order_id=%s", order_id)
+            return order
 
-            if processed_order is None:
-                self.queue_service.dequeue_order()
-                logger.warning("stale_queue_message_discarded order_id=%s", order_id)
-                return "stale_queue_discarded"
+        if self.order_service.order_failed(order):
+            if order.failure_step not in self.settings.retryable_failure_steps:
+                logger.info("order_already_failed order_id=%s", order_id)
+                return order
 
-            if processed_order.status == "COMPLETED":
-                self.queue_service.dequeue_order()
-                logger.info("order_processing_finished order_id=%s", order_id)
-                return processed_order
+            logger.info(
+                "retryable_failed_order_reprocessing order_id=%s failure_step=%s",
+                order_id,
+                order.failure_step,
+            )
 
-            if processed_order.status == "FAILED":
-                if (
-                    processed_order.failure_step
-                    in self.settings.retryable_failure_steps
-                ):
-                    if attempt == self.settings.max_processing_attempts:
-                        print("Max attempts reached")  # v0.6.3 - DLQ
-                        self.queue_service.dequeue_order()
-                        return processed_order
+        start_step = self.get_start_step(order)
 
-                    delay_seconds = self.calculate_retry_delay_seconds(attempt)
-                    print(f"Retrying in {delay_seconds} seconds")
-                    time.sleep(delay_seconds)
-                    continue
+        order.attempt_count += 1
+        self.mark_order_status(order, "PROCESSING")
+        self.order_service.save_order(order)
+        self.order_service.log_order_state(order)
 
-                self.queue_service.dequeue_order()
-                logger.info(
-                    "order_processing_finished_non_retryable_failure order_id=%s failure_step=%s",
-                    order_id,
-                    processed_order.failure_step,
-                )
-                return processed_order
+        for step in self.get_steps_from(start_step):
+            order = step_handlers[step](order, order_id)
+            if order.status == "FAILED":
+                return order
+
+        self.mark_order_status(order, "COMPLETED")
+        self.order_service.save_order(order)
+        logger.info(
+            "order_processing_pipeline_finished order_id=%s status=COMPLETED", order_id
+        )
+        self.order_service.log_order_state(order)
+
+        return order
 
 
-sandbox = Sandbox()
-print(sandbox.process_next_order())
+def run_resumable_order_pipeline():
+    settings = Settings(
+        max_processing_attempts=4,
+        retry_base_delay_seconds=1,
+        retry_backoff_multiplier=2,
+    )
+    request = CreateOrderRequest(
+        customer_id="cust_123",
+        items=[
+            OrderItemRequest(
+                sku="SKU-001",
+                quantity=2,
+            ),
+            OrderItemRequest(
+                sku="SKU-002",
+                quantity=1,
+            ),
+        ],
+        currency="EUR",
+    )
+
+    storage_reset()
+
+    order_service = OrderService()
+
+    order_service.create_order(
+        order_id="ord_123",
+        customer_id=request.customer_id,
+        items=[
+            OrderItem(sku=item.sku, quantity=item.quantity) for item in request.items
+        ],
+        currency=request.currency,
+    )
+
+    order_pipeline = Sandbox(settings=settings)
+
+    processed_order = order_pipeline.process_order("ord_123")
+    print(processed_order)
+
+    storage_reset()
+
+
+run_resumable_order_pipeline()

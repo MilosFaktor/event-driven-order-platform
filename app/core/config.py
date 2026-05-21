@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     retry_backoff_multiplier: int = 2
     retryable_failure_steps: set[FailureStep] = {
         FailureStep.CAPTURE_PAYMENT,
-        # FailureStep.SEND_NOTIFICATION,
+        FailureStep.SEND_NOTIFICATION,
     }
 
 
