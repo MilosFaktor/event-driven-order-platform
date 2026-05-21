@@ -1,7 +1,7 @@
 .PHONY: check format lint run api api-create-order-1 api-create-order-2 \
 	api-get-orders api-get-idem-keys api-get-inventory worker api-get-q \
 	worker-process-next sandbox api-get-ntfs api-get-invoices storage-reset \
-	api-local api-prod worker-local worker-prod loc-app sandbox-local
+	api-local api-prod worker-local worker-prod loc-app sandbox-local tests \
 
 check:
 	uv run ruff check .
@@ -84,3 +84,8 @@ api-get-inventory:
 
 storage-reset:
 	uv run python -m scripts.reset_json_data
+
+# ============ tests ===============
+
+tests:
+	uv run pytest -v -x
