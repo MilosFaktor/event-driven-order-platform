@@ -169,6 +169,18 @@ Standalone worker processing queued work:
 
 <img src="docs/screenshots/03-standalone-worker.png" width="900">
 
+Retry/backoff attempts in the worker:
+
+<img src="docs/screenshots/04-retry-logs-worker-service.png" width="900">
+
+Failed order state after retry exhaustion:
+
+<img src="docs/screenshots/05-api-response-from-retry.png" width="900">
+
+Initial pytest coverage for the order pipeline:
+
+<img src="docs/screenshots/06-tests-foundation.png" width="900">
+
 ## AWS Mapping
 
 The local implementation is designed to map to AWS later:
