@@ -56,6 +56,15 @@ class OrderPipelineService:
             failure_reason,
         )
 
+    def clear_active_failure(self, order):
+        if order.failure_step is not None:
+            order.last_failure_step = order.failure_step
+            order.failure_step = None
+
+        if order.failure_reason is not None:
+            order.last_error = order.failure_reason
+            order.failure_reason = None
+
     def reserve_inventory_step(self, order, order_id):
         logger.info("inventory_reservation_started order_id=%s", order_id)
 
@@ -81,9 +90,6 @@ class OrderPipelineService:
         logger.info("payment_capture_started order_id=%s", order_id)
 
         try:
-            # Manual retry testing:
-            # self.payment_service.failed_capture_payment_mock(order)
-
             self.payment_service.capture_payment_mock(order)
 
         except PaymentCaptureError:
@@ -145,9 +151,6 @@ class OrderPipelineService:
         logger.info("notification_send_started order_id=%s", order_id)
 
         try:
-            # Manual retry testing:
-            # self.notification_service.failed_send_notification_mock(order)
-
             self.notification_service.send_notification(order)
 
         except NotificationSendError:
@@ -226,6 +229,8 @@ class OrderPipelineService:
             order = step_handlers[step](order, order_id)
             if order.status == "FAILED":
                 return order
+
+        self.clear_active_failure(order)
 
         self.mark_order_status(order, "COMPLETED")
         self.order_service.save_order(order)

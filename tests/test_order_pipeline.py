@@ -273,10 +273,10 @@ def test_payment_failure_then_retry_success_completes_order():
         assert processed_order.status == "COMPLETED"
         assert processed_order.attempt_count == 2
         assert processed_order.steps.capture_payment == "CAPTURED"
-        # assert processed_order.failure_step is None
-        assert processed_order.failure_step == "CAPTURE_PAYMENT"
-        # assert processed_order.failure_reason is None
-        assert processed_order.failure_reason == "Payment capture failed"
+        assert processed_order.failure_step is None
+        assert processed_order.last_failure_step == "CAPTURE_PAYMENT"
+        assert processed_order.failure_reason is None
+        assert processed_order.last_error == "Payment capture failed"
 
     finally:
         storage_reset()
@@ -337,15 +337,14 @@ def test_notification_failure_then_retry_success_completes_order():
         )
 
         processed_order = worker.process_next_order()
-        # logger.info(f"Processed order: {processed_order}")
 
         assert processed_order.status == "COMPLETED"
         assert processed_order.attempt_count == 2
         assert processed_order.steps.send_notification == "SENT"
-        # assert processed_order.failure_step is None
-        assert processed_order.failure_step == "SEND_NOTIFICATION"
-        # assert processed_order.failure_reason is None
-        assert processed_order.failure_reason == "Notification sending failed"
+        assert processed_order.failure_step is None
+        assert processed_order.last_failure_step == FailureStep.SEND_NOTIFICATION
+        assert processed_order.failure_reason is None
+        assert processed_order.last_error == "Notification sending failed"
 
     finally:
         storage_reset()
