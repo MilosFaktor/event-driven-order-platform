@@ -92,7 +92,6 @@ class OrderPipelineService:
                 order, FailureStep.CAPTURE_PAYMENT, "Payment capture failed"
             )
 
-            logger.info("inventory_release_started order_id=%s", order_id)
             if order.attempt_count == self.settings.max_processing_attempts:
                 self.inventory_service.release_order_inventory(order)
 
