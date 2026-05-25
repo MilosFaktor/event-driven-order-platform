@@ -348,3 +348,68 @@ def test_notification_failure_then_retry_success_completes_order():
 
     finally:
         storage_reset()
+
+
+def test_finalized_inventory_sale_is_not_applied_twice():
+    storage_reset()
+
+    try:
+        settings = Settings(
+            max_processing_attempts=3,
+            retry_base_delay_seconds=0,
+            retry_backoff_multiplier=2,
+            retryable_failure_steps={
+                FailureStep.FINALIZE_INVENTORY_SALE,
+            },
+        )
+
+        order_id = "ord_retry1"
+
+        order_service = OrderService()
+        order_service.create_order(
+            order_id=order_id,
+            customer_id="cust_123",
+            items=[
+                OrderItem(sku="SKU-001", quantity=2),
+                OrderItem(sku="SKU-002", quantity=1),
+            ],
+            currency="EUR",
+        )
+
+        pipeline = OrderPipelineService(settings=settings)
+
+        processed_order = pipeline.process_order(order_id)
+
+        assert processed_order.status == "COMPLETED"
+        assert processed_order.steps.finalize_inventory_sale == "FINALIZED"
+
+        inventory_after_first_run = pipeline.inventory_service.list_inventory()
+        sku_001_sold_after_first_run = inventory_after_first_run.root[
+            "SKU-001"
+        ].sold_stock
+        sku_002_sold_after_first_run = inventory_after_first_run.root[
+            "SKU-002"
+        ].sold_stock
+
+        processed_order.status = "FAILED"
+        processed_order.failure_step = FailureStep.FINALIZE_INVENTORY_SALE
+        processed_order.failure_reason = "Manual retry test"
+        order_service.save_order(processed_order)
+
+        processed_order = pipeline.process_order(order_id)
+
+        inventory_after_second_run = pipeline.inventory_service.list_inventory()
+
+        assert processed_order.status == "COMPLETED"
+        assert processed_order.steps.finalize_inventory_sale == "FINALIZED"
+        assert (
+            inventory_after_second_run.root["SKU-001"].sold_stock
+            == sku_001_sold_after_first_run
+        )
+        assert (
+            inventory_after_second_run.root["SKU-002"].sold_stock
+            == sku_002_sold_after_first_run
+        )
+
+    finally:
+        storage_reset()
