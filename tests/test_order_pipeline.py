@@ -215,3 +215,136 @@ def test_notification_failure_retries():
 
     finally:
         storage_reset()
+
+
+class FailOncePaymentService(PaymentService):
+    def __init__(self):
+        self._failed = False
+
+    def capture_payment_mock(self, order):
+        if self._failed:
+            order.steps.capture_payment = "CAPTURED"
+            return
+
+        order.steps.capture_payment = "FAILED"
+        self._failed = True
+        raise PaymentCaptureError(f"Payment capture failed for order {order.order_id}")
+
+
+def test_payment_failure_then_retry_success_completes_order():
+    storage_reset()
+
+    try:
+        settings = Settings(
+            max_processing_attempts=3,
+            retry_base_delay_seconds=0,
+            retry_backoff_multiplier=2,
+            retryable_failure_steps={
+                FailureStep.CAPTURE_PAYMENT,
+            },
+        )
+
+        order_id = "ord_retry1"
+
+        order_service = OrderService()
+        order_service.create_order(
+            order_id=order_id,
+            customer_id="cust_123",
+            items=[
+                OrderItem(sku="SKU-001", quantity=2),
+                OrderItem(sku="SKU-002", quantity=1),
+            ],
+            currency="EUR",
+        )
+
+        pipeline = OrderPipelineService(
+            settings=settings,
+            payment_service=FailOncePaymentService(),
+        )
+
+        worker = WorkerService(
+            settings=settings,
+            queue_service=FakeQueueService(order_id),
+            order_pipeline_service=pipeline,
+        )
+
+        processed_order = worker.process_next_order()
+
+        assert processed_order.status == "COMPLETED"
+        assert processed_order.attempt_count == 2
+        assert processed_order.steps.capture_payment == "CAPTURED"
+        assert processed_order.failure_step is None
+        assert processed_order.last_failure_step == "CAPTURE_PAYMENT"
+        assert processed_order.failure_reason is None
+        assert processed_order.last_error == "Payment capture failed"
+
+    finally:
+        storage_reset()
+
+
+class FailOnceNotificationService(NotificationService):
+    def __init__(self):
+        super().__init__()
+        self._failed = False
+
+    def send_notification(self, order):
+        if self._failed:
+            order.steps.send_notification = "SENT"
+            return super().send_notification(order)
+
+        order.steps.send_notification = "FAILED"
+        self._failed = True
+        raise NotificationSendError(
+            f"Notification sending failed for order {order.order_id}"
+        )
+
+
+def test_notification_failure_then_retry_success_completes_order():
+    storage_reset()
+
+    try:
+        settings = Settings(
+            max_processing_attempts=3,
+            retry_base_delay_seconds=0,
+            retry_backoff_multiplier=2,
+            retryable_failure_steps={
+                FailureStep.SEND_NOTIFICATION,
+            },
+        )
+
+        order_id = "ord_retry1"
+
+        order_service = OrderService()
+        order_service.create_order(
+            order_id=order_id,
+            customer_id="cust_123",
+            items=[
+                OrderItem(sku="SKU-001", quantity=2),
+                OrderItem(sku="SKU-002", quantity=1),
+            ],
+            currency="EUR",
+        )
+
+        pipeline = OrderPipelineService(
+            settings=settings,
+            notification_service=FailOnceNotificationService(),
+        )
+
+        worker = WorkerService(
+            settings=settings,
+            queue_service=FakeQueueService(order_id),
+            order_pipeline_service=pipeline,
+        )
+
+        processed_order = worker.process_next_order()
+
+        assert processed_order.status == "COMPLETED"
+        assert processed_order.attempt_count == 2
+        assert processed_order.steps.send_notification == "SENT"
+        assert processed_order.failure_step is None
+        assert processed_order.last_failure_step == FailureStep.SEND_NOTIFICATION
+        assert processed_order.failure_reason is None
+        assert processed_order.last_error == "Notification sending failed"
+
+    finally:
+        storage_reset()

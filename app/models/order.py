@@ -47,6 +47,8 @@ class Order(BaseModel):
     failure_reason: str | None = None
     failure_step: FailureStep | None = None
     attempt_count: int = 0
+    last_error: str | None = None
+    last_failure_step: FailureStep | None = None
 
     @field_validator("items")
     @classmethod

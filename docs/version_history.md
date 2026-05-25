@@ -561,16 +561,45 @@ Remaining limitations:
 
 ```text
 - DLQ behavior is not implemented yet
-- retry eventual-success cases need more explicit tests
 - inventory finalization and invoice failure handling still use transitional broad catches
 - local queue behavior is still a learning model, not a full SQS visibility-timeout simulation
 ```
+
+## v0.6.3 - Retry Eventual Success
+
+Goal: prove retryable temporary failures can recover and complete successfully.
+
+Implemented in v0.6.3:
+
+```text
+- payment fail-once-then-success test
+- notification fail-once-then-success test
+- test doubles for temporary payment and notification failures
+- recovered orders clear active failure_step and failure_reason
+- previous failure metadata is preserved in last_failure_step and last_error
+- retry recovery tests for payment and notification
+```
+
+Current recovered order behavior:
+
+```text
+temporary retryable failure happens
+-> order is saved as FAILED with failure_step and failure_reason
+-> worker retries from the failed checkpoint
+-> retry succeeds
+-> order is saved as COMPLETED
+-> active failure_step / failure_reason are cleared
+-> previous failure is preserved as last_failure_step / last_error
+```
+
+Why it mattered:
+
+v0.6.2 proved retry exhaustion. v0.6.3 proved retry recovery.
 
 ## Next Versions
 
 Current and planned next steps:
 
-- `v0.6.3` - retry polish and eventual-success retry tests
 - `v0.6.4` - pipeline checkpoint / idempotent step refinement
 - `v0.6.5` - stronger resumable pipeline behavior
 - later `v0.6.x` - local DLQ simulation

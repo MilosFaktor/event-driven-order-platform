@@ -91,12 +91,13 @@ Orders include:
 failure_reason
 failure_step
 attempt_count
+last_failure_step
+last_error
 ```
 
 Later retry/DLQ work may add:
 
 ```text
-last_error
 failure_code
 failure_retryable
 ```
@@ -145,6 +146,29 @@ stale queue message -> dequeue and stop
 
 The order pipeline processes one attempt at a time. When retrying a failed order,
 it uses the saved `failure_step` to restart from the failed retryable step.
+
+## Recovered Failure State
+
+When a retryable failure later succeeds, the active failure fields are cleared:
+
+```text
+failure_step = None
+failure_reason = None
+```
+
+The previous failure remains inspectable as recovery metadata:
+
+```text
+last_failure_step
+last_error
+```
+
+This keeps the current order state clear:
+
+```text
+COMPLETED means no active failure
+last_error explains the previous failure that was recovered from
+```
 
 ## Inventory Compensation
 

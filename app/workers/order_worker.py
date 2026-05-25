@@ -21,12 +21,17 @@ def worker_server():
         logger.debug("worker_heartbeat seconds=%s", seconds)
 
         seconds += settings.queue_interval
+
         time.sleep(settings.queue_interval)
 
 
 def main():
     logger.info("worker_started")
-    worker_server()
+    try:
+        worker_server()
+    except KeyboardInterrupt:
+        logger.info("worker_stopped")
+        return
 
 
 if __name__ == "__main__":
