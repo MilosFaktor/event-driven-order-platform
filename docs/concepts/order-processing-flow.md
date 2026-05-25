@@ -17,6 +17,7 @@ worker/manual endpoint
 -> mark PROCESSING
 -> reserve inventory
 -> capture mock payment
+-> finalize inventory sale
 -> create invoice
 -> send notification
 -> mark COMPLETED
@@ -41,6 +42,8 @@ app/workflows/order_pipeline_service.py processing workflow
 - Completed orders should not be processed again.
 - Missing queued order IDs are treated as stale queue messages and discarded by the worker.
 - Inventory reservation should not partially reserve earlier items when a later item fails.
+- Retryable payment and notification failures can be retried with backoff.
+- Successful retry recovery clears active failure state and preserves the previous failure in last-error metadata.
 
 ## Current States
 
@@ -58,9 +61,11 @@ Failure handling records clearer fields like:
 ```text
 failure_reason
 failure_step
+last_error
+last_failure_step
 ```
 
-Retry work may later add:
+Retry work tracks:
 
 ```text
 attempt_count

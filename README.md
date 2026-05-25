@@ -18,9 +18,9 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current completed version: `v0.6.2`
+Current completed version: `v0.6.3`
 
-Next planned work: retry polish, checkpoint refinement, and stronger resumable pipeline behavior.
+Next planned work: pipeline checkpoint/idempotency refinement.
 
 The current local version includes:
 
@@ -49,7 +49,10 @@ The current local version includes:
 - retryable payment and notification failure handling
 - payment failure inventory release after retry exhaustion
 - retryable failed orders can restart from the failed pipeline step
-- initial pytest coverage for happy path, retry delay, payment retry, and notification retry
+- retry eventual-success behavior for payment and notification failures
+- active failure metadata cleanup after successful retry recovery
+- previous failure metadata with `last_failure_step` and `last_error`
+- initial pytest coverage for happy path, retry delay, retry exhaustion, and retry recovery
 - stale queued order handling for missing order IDs
 - order processing pipeline:
   - reserve inventory
@@ -128,6 +131,7 @@ service step failure
 -> order-processing workflow records failure_step and failure_reason
 -> failed order state is saved
 -> worker retries configured retryable steps with backoff
+-> recovered orders clear active failure fields and keep last failure metadata
 -> DLQ behavior comes later
 ```
 
@@ -283,7 +287,6 @@ GitHub Actions currently runs Ruff checks and pytest, and the `main` branch is p
 
 Planned next versions:
 
-- `v0.6.3` - retry polish and eventual-success retry tests
 - `v0.6.4` - pipeline checkpoint / idempotent step refinement
 - `v0.6.5` - stronger resumable pipeline behavior
 - later `v0.6.x` - local DLQ simulation
