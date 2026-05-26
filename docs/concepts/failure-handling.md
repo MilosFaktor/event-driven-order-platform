@@ -45,7 +45,7 @@ Retryable operational failure
 Poison or exhausted message
 -> max retry attempts reached
 -> current local behavior stops processing and dequeues the work
--> later DLQ work can move exhausted work into an inspectable dead-letter queue
+-> future AWS SQS redrive policy can move exhausted work into a DLQ
 
 System / storage failure
 -> local JSON infrastructure problem
@@ -104,7 +104,7 @@ failure_retryable
 
 ## Important Rule
 
-Failure handling comes before DLQ.
+Failure handling comes before DLQ/redrive integration.
 
 First make failures visible and deterministic. Then retry only the failures that
 are explicitly classified as retryable.
@@ -146,6 +146,21 @@ stale queue message -> dequeue and stop
 
 The order pipeline processes one attempt at a time. When retrying a failed order,
 it uses the saved `failure_step` to restart from the failed retryable step.
+
+## Checkpoint Guards
+
+The pipeline also guards completed side-effect steps:
+
+```text
+RESERVED inventory is not reserved again
+CAPTURED payment is not captured again
+FINALIZED inventory sale is not finalized again
+CREATED invoice is not created again
+SENT notification is not sent again
+```
+
+The retry start step chooses where processing begins. The checkpoint guards make
+the reached step safe to skip if it was already completed.
 
 ## Recovered Failure State
 
@@ -199,3 +214,4 @@ failure_reason
 - Do not leave reserved inventory stuck after a later failure.
 - Do not turn API validation errors into worker failures.
 - Do not keep broad catch-all handlers forever; replace them with named domain failures when the failure model stabilizes.
+- Do not build local DLQ simulation before it is needed; future AWS SQS redrive policy should own DLQ movement.

@@ -44,6 +44,24 @@ app/workflows/order_pipeline_service.py processing workflow
 - Inventory reservation should not partially reserve earlier items when a later item fails.
 - Retryable payment and notification failures can be retried with backoff.
 - Successful retry recovery clears active failure state and preserves the previous failure in last-error metadata.
+- Completed side-effect steps are guarded so re-entry does not duplicate inventory finalization, invoice creation, or notification sending.
+
+## Retry And Re-Entry
+
+The order pipeline uses two layers of protection:
+
+```text
+failure_step map -> chooses where retry starts
+step status guard -> skips a step if its side effect already completed
+```
+
+Examples:
+
+```text
+FINALIZED inventory sale -> do not move stock again
+CREATED invoice -> do not create invoice again
+SENT notification -> do not send notification again
+```
 
 ## Current States
 
@@ -78,5 +96,6 @@ API -> API Gateway/Lambda
 queue -> SQS
 worker -> Lambda worker
 order state -> DynamoDB
+redrive / DLQ -> SQS redrive policy + SQS DLQ
 logs -> CloudWatch
 ```
