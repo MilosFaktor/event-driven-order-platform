@@ -596,13 +596,47 @@ Why it mattered:
 
 v0.6.2 proved retry exhaustion. v0.6.3 proved retry recovery.
 
+## v0.6.4 - Pipeline Checkpoint Idempotency
+
+Goal: make the pipeline safer to re-enter without duplicating side effects.
+
+Implemented in v0.6.4:
+
+```text
+- reserve inventory skips when inventory is already RESERVED
+- reserve inventory skips when inventory was already RELEASED
+- payment capture skips when payment is already CAPTURED
+- inventory sale finalization skips when inventory sale is already FINALIZED
+- invoice creation skips when invoice is already CREATED
+- notification sending skips when notification is already SENT
+- payment failure avoids releasing already RELEASED inventory again
+- tests prove inventory finalization is not applied twice
+- tests prove notification sending is not applied twice
+- tests prove invoice creation is not applied twice
+```
+
+Why it mattered:
+
+```text
+FailureStep map decides where retry should start.
+Step guards decide whether a reached step should actually run.
+```
+
+This reduces duplicate side-effect risk when a saved order re-enters the
+pipeline from an already completed checkpoint.
+
+DLQ decision:
+
+Local DLQ simulation is intentionally not implemented before MVP. In the future
+AWS version, SQS redrive policy should move exhausted messages to a DLQ. The
+application should focus on saving useful order failure state and metadata.
+
 ## Next Versions
 
 Current and planned next steps:
 
-- `v0.6.4` - pipeline checkpoint / idempotent step refinement
-- `v0.6.5` - stronger resumable pipeline behavior
-- later `v0.6.x` - local DLQ simulation
 - `v0.7.0` - broader tests
+- create-order workflow cleanup
+- future AWS SQS / DLQ integration
 - `v0.8.0` - documentation polish
 - `v1.0.0` - local Phase 1 MVP complete

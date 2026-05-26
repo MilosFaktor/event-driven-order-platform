@@ -18,9 +18,9 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current completed version: `v0.6.3`
+Current completed version: `v0.6.4`
 
-Next planned work: pipeline checkpoint/idempotency refinement.
+Next planned work: broader tests or create-order workflow cleanup.
 
 The current local version includes:
 
@@ -52,7 +52,9 @@ The current local version includes:
 - retry eventual-success behavior for payment and notification failures
 - active failure metadata cleanup after successful retry recovery
 - previous failure metadata with `last_failure_step` and `last_error`
-- initial pytest coverage for happy path, retry delay, retry exhaustion, and retry recovery
+- pipeline checkpoint guards that skip already completed side-effect steps
+- tests proving inventory finalization, invoice creation, and notification sending are not applied twice
+- initial pytest coverage for happy path, retry delay, retry exhaustion, retry recovery, and repeated-step guards
 - stale queued order handling for missing order IDs
 - order processing pipeline:
   - reserve inventory
@@ -132,7 +134,7 @@ service step failure
 -> failed order state is saved
 -> worker retries configured retryable steps with backoff
 -> recovered orders clear active failure fields and keep last failure metadata
--> DLQ behavior comes later
+-> future AWS SQS redrive policy handles DLQ movement
 ```
 
 Local storage files:
@@ -199,6 +201,7 @@ The local implementation is designed to map to AWS later:
 | JSON invoices | S3 / DynamoDB metadata |
 | JSON notifications | SNS / notification records |
 | Worker process | Lambda worker |
+| Future SQS redrive policy | SQS DLQ |
 | stdout logs | CloudWatch Logs |
 
 ## Run Locally
@@ -287,9 +290,8 @@ GitHub Actions currently runs Ruff checks and pytest, and the `main` branch is p
 
 Planned next versions:
 
-- `v0.6.4` - pipeline checkpoint / idempotent step refinement
-- `v0.6.5` - stronger resumable pipeline behavior
-- later `v0.6.x` - local DLQ simulation
 - `v0.7.0` - broader tests
+- create-order workflow cleanup
+- future AWS SQS / DLQ integration
 - `v0.8.0` - documentation polish
 - `v1.0.0` - local Phase 1 MVP complete
