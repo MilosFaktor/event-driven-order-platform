@@ -52,56 +52,58 @@ def test_retry_delay_uses_exponential_backoff():
 
 
 def test_order_pipeline_service_happy_path():
-    settings = Settings(
-        max_processing_attempts=4,
-        retry_base_delay_seconds=1,
-        retry_backoff_multiplier=2,
-    )
-    request = CreateOrderRequest(
-        customer_id="cust_123",
-        items=[
-            OrderItemRequest(
-                sku="SKU-001",
-                quantity=2,
-            ),
-            OrderItemRequest(
-                sku="SKU-002",
-                quantity=1,
-            ),
-        ],
-        currency="EUR",
-    )
-
     storage_reset()
 
-    order_service = OrderService()
+    try:
+        settings = Settings(
+            max_processing_attempts=4,
+            retry_base_delay_seconds=1,
+            retry_backoff_multiplier=2,
+        )
+        request = CreateOrderRequest(
+            customer_id="cust_123",
+            items=[
+                OrderItemRequest(
+                    sku="SKU-001",
+                    quantity=2,
+                ),
+                OrderItemRequest(
+                    sku="SKU-002",
+                    quantity=1,
+                ),
+            ],
+            currency="EUR",
+        )
 
-    order_service.create_order(
-        order_id="ord_123",
-        customer_id=request.customer_id,
-        items=[
-            OrderItem(sku=item.sku, quantity=item.quantity) for item in request.items
-        ],
-        currency=request.currency,
-    )
+        order_service = OrderService()
 
-    order_pipeline = OrderPipelineService(settings=settings)
+        order_service.create_order(
+            order_id="ord_123",
+            customer_id=request.customer_id,
+            items=[
+                OrderItem(sku=item.sku, quantity=item.quantity)
+                for item in request.items
+            ],
+            currency=request.currency,
+        )
 
-    processed_order = order_pipeline.process_order("ord_123")
+        order_pipeline = OrderPipelineService(settings=settings)
 
-    assert processed_order.order_id == "ord_123"
-    assert processed_order.customer_id == "cust_123"
-    assert processed_order.status == "COMPLETED"
-    assert processed_order.steps.reserve_inventory == "RESERVED"
-    assert processed_order.steps.capture_payment == "CAPTURED"
-    assert processed_order.steps.finalize_inventory_sale == "FINALIZED"
-    assert processed_order.steps.create_invoice == "CREATED"
-    assert processed_order.steps.send_notification == "SENT"
-    assert processed_order.failure_reason is None
-    assert processed_order.failure_step is None
-    assert processed_order.attempt_count == 1
+        processed_order = order_pipeline.process_order("ord_123")
 
-    storage_reset()
+        assert processed_order.order_id == "ord_123"
+        assert processed_order.customer_id == "cust_123"
+        assert processed_order.status == "COMPLETED"
+        assert processed_order.steps.reserve_inventory == "RESERVED"
+        assert processed_order.steps.capture_payment == "CAPTURED"
+        assert processed_order.steps.finalize_inventory_sale == "FINALIZED"
+        assert processed_order.steps.create_invoice == "CREATED"
+        assert processed_order.steps.send_notification == "SENT"
+        assert processed_order.failure_reason is None
+        assert processed_order.failure_step is None
+        assert processed_order.attempt_count == 1
+    finally:
+        storage_reset()
 
 
 class AlwaysFailPaymentService(PaymentService):
@@ -410,6 +412,127 @@ def test_finalized_inventory_sale_is_not_applied_twice():
             inventory_after_second_run.root["SKU-002"].sold_stock
             == sku_002_sold_after_first_run
         )
+
+    finally:
+        storage_reset()
+
+
+def test_sent_notification_is_not_sent_twice():
+    storage_reset()
+
+    try:
+        settings = Settings(
+            max_processing_attempts=3,
+            retry_base_delay_seconds=0,
+            retry_backoff_multiplier=2,
+            retryable_failure_steps={
+                FailureStep.SEND_NOTIFICATION,
+            },
+        )
+
+        order_id = "ord_retry1"
+
+        order_service = OrderService()
+        order_service.create_order(
+            order_id=order_id,
+            customer_id="cust_123",
+            items=[
+                OrderItem(sku="SKU-001", quantity=2),
+                OrderItem(sku="SKU-002", quantity=1),
+            ],
+            currency="EUR",
+        )
+
+        pipeline = OrderPipelineService(settings=settings)
+
+        processed_order = pipeline.process_order(order_id)
+
+        assert processed_order.status == "COMPLETED"
+        assert processed_order.steps.send_notification == "SENT"
+
+        notifications_after_first_run = (
+            pipeline.notification_service.list_notifications()
+        )
+        notification_id = f"ntf_{order_id}"
+        notification_after_first_run = notifications_after_first_run.root[
+            notification_id
+        ]
+
+        processed_order.status = "FAILED"
+        processed_order.failure_step = FailureStep.SEND_NOTIFICATION
+        processed_order.failure_reason = "Manual retry test"
+        order_service.save_order(processed_order)
+
+        processed_order = pipeline.process_order(order_id)
+
+        notifications_after_second_run = (
+            pipeline.notification_service.list_notifications()
+        )
+
+        assert processed_order.status == "COMPLETED"
+        assert processed_order.steps.send_notification == "SENT"
+        assert len(notifications_after_second_run.root) == len(
+            notifications_after_first_run.root
+        )
+        assert (
+            notifications_after_second_run.root[notification_id]
+            == notification_after_first_run
+        )
+
+    finally:
+        storage_reset()
+
+
+def test_created_invoice_is_not_created_twice():
+    storage_reset()
+
+    try:
+        settings = Settings(
+            max_processing_attempts=3,
+            retry_base_delay_seconds=0,
+            retry_backoff_multiplier=2,
+            retryable_failure_steps={
+                FailureStep.CREATE_INVOICE,
+            },
+        )
+
+        order_id = "ord_retry1"
+
+        order_service = OrderService()
+        order_service.create_order(
+            order_id=order_id,
+            customer_id="cust_123",
+            items=[
+                OrderItem(sku="SKU-001", quantity=2),
+                OrderItem(sku="SKU-002", quantity=1),
+            ],
+            currency="EUR",
+        )
+
+        pipeline = OrderPipelineService(settings=settings)
+
+        processed_order = pipeline.process_order(order_id)
+
+        assert processed_order.status == "COMPLETED"
+        assert processed_order.steps.create_invoice == "CREATED"
+
+        invoices_after_first_run = pipeline.invoice_service.list_invoices()
+        invoice_id = f"inv_{order_id}"
+        invoice_after_first_run = invoices_after_first_run.root[invoice_id]
+
+        processed_order.status = "FAILED"
+        processed_order.failure_step = FailureStep.CREATE_INVOICE
+        processed_order.failure_reason = "Manual retry test"
+        order_service.save_order(processed_order)
+
+        processed_order = pipeline.process_order(order_id)
+
+        invoices_after_second_run = pipeline.invoice_service.list_invoices()
+
+        assert processed_order.status == "COMPLETED"
+        assert processed_order.steps.create_invoice == "CREATED"
+        assert len(invoices_after_second_run.root) == len(invoices_after_first_run.root)
+        assert invoices_after_second_run.root[invoice_id] == invoice_after_first_run
 
     finally:
         storage_reset()
