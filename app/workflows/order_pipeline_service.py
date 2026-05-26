@@ -66,6 +66,13 @@ class OrderPipelineService:
             order.failure_reason = None
 
     def reserve_inventory_step(self, order, order_id):
+        if order.steps.reserve_inventory == "RESERVED":
+            logger.info("inventory_already_reserved order_id=%s", order_id)
+            return order
+        if order.steps.reserve_inventory == "RELEASED":
+            logger.info("inventory_already_released order_id=%s", order_id)
+            return order
+
         logger.info("inventory_reservation_started order_id=%s", order_id)
 
         self.inventory_service.reserve_inventory(order)
@@ -87,6 +94,10 @@ class OrderPipelineService:
         return order
 
     def capture_payment_step(self, order, order_id):
+        if order.steps.capture_payment == "CAPTURED":
+            logger.info("payment_already_captured order_id=%s", order_id)
+            return order
+
         logger.info("payment_capture_started order_id=%s", order_id)
 
         try:
@@ -99,7 +110,10 @@ class OrderPipelineService:
             )
 
             if order.attempt_count == self.settings.max_processing_attempts:
-                self.inventory_service.release_order_inventory(order)
+                if order.steps.reserve_inventory == "RELEASED":
+                    logger.info("inventory_already_released order_id=%s", order_id)
+                else:
+                    self.inventory_service.release_order_inventory(order)
 
             self.order_service.save_order(order)
             self.order_service.log_order_state(order)
@@ -110,6 +124,10 @@ class OrderPipelineService:
         return order
 
     def finalize_inventory_sale_step(self, order, order_id):
+        if order.steps.finalize_inventory_sale == "FINALIZED":
+            logger.info("inventory_sale_already_finalized order_id=%s", order_id)
+            return order
+
         logger.info("inventory_sale_finalization_started order_id=%s", order_id)
 
         try:
@@ -130,6 +148,10 @@ class OrderPipelineService:
         return order
 
     def create_invoice_step(self, order, order_id):
+        if order.steps.create_invoice == "CREATED":
+            logger.info("invoice_already_created order_id=%s", order_id)
+            return order
+
         logger.info("invoice_creation_started order_id=%s", order_id)
 
         try:
@@ -148,6 +170,10 @@ class OrderPipelineService:
         return order
 
     def send_notification_step(self, order, order_id):
+        if order.steps.send_notification == "SENT":
+            logger.info("notification_already_sent order_id=%s", order_id)
+            return order
+
         logger.info("notification_send_started order_id=%s", order_id)
 
         try:
