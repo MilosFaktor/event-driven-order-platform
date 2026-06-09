@@ -2,7 +2,6 @@ from app.storage.json_storage import STORAGE_PATHS, load_json, save_json
 
 
 def storage_reset():
-    """here i am writitng docstrings"""
     print("\nResetting persistent storage JSON...")
 
     save_json(STORAGE_PATHS["queue"], [])
