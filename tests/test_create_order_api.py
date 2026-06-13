@@ -1,16 +1,7 @@
-import contextlib
-import io
-
 from fastapi.testclient import TestClient
 
 from app.api.main import app
-from scripts.reset_json_data import storage_reset
-
-
-def silent_storage_reset():  # for hidden output
-    with contextlib.redirect_stdout(io.StringIO()):
-        storage_reset()
-
+from tests.helpers import silent_storage_reset
 
 client = TestClient(app)
 

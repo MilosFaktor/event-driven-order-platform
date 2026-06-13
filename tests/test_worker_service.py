@@ -1,19 +1,11 @@
-import contextlib
-import io
-
 from app.core.config import Settings, settings
-from app.models.order import OrderItem
+from app.models.order import Order, OrderItem
 from app.models.types import FailureStep
 from app.services.order_service import OrderService
 from app.services.queue_service import ProcessingQueueService
 from app.workflows.order_pipeline_service import OrderPipelineService
 from app.workflows.worker_service import WorkerService
-from scripts.reset_json_data import storage_reset
-
-
-def silent_storage_reset():  # for hidden output
-    with contextlib.redirect_stdout(io.StringIO()):
-        storage_reset()
+from tests.helpers import silent_storage_reset
 
 
 def test_empty_queue_returns_none():
@@ -81,7 +73,9 @@ def test_non_retryable_failed_order_dequeues_and_stops():
             items=items,
             currency="EUR",
         )
+
         order = order_service.get_order("ord_123")
+        assert isinstance(order, Order)
         order.status = "FAILED"
         order.steps.reserve_inventory = "FAILED"
         order.failure_step = FailureStep.RESERVE_INVENTORY
@@ -97,6 +91,7 @@ def test_non_retryable_failed_order_dequeues_and_stops():
         )
         result = worker_service.process_next_order()
 
+        assert isinstance(result, Order)
         assert result.status == "FAILED"
         assert result.failure_step == FailureStep.RESERVE_INVENTORY
         assert result.failure_reason == "Inventory reservation failed"

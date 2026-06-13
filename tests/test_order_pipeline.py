@@ -1,6 +1,6 @@
 from app.core.config import Settings
 from app.exceptions import NotificationSendError, PaymentCaptureError
-from app.models.order import OrderItem
+from app.models.order import Order, OrderItem
 from app.models.orders_request import CreateOrderRequest, OrderItemRequest
 from app.models.types import FailureStep
 from app.services.notification_service import NotificationService
@@ -8,7 +8,7 @@ from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 from app.workflows.order_pipeline_service import OrderPipelineService
 from app.workflows.worker_service import WorkerService
-from scripts.reset_json_data import storage_reset
+from tests.helpers import silent_storage_reset
 
 
 def test_failure_step_capture_payment_value():
@@ -52,7 +52,7 @@ def test_retry_delay_uses_exponential_backoff():
 
 
 def test_order_pipeline_service_happy_path():
-    storage_reset()
+    silent_storage_reset()
 
     try:
         settings = Settings(
@@ -91,6 +91,7 @@ def test_order_pipeline_service_happy_path():
 
         processed_order = order_pipeline.process_order("ord_123")
 
+        assert processed_order is not None
         assert processed_order.order_id == "ord_123"
         assert processed_order.customer_id == "cust_123"
         assert processed_order.status == "COMPLETED"
@@ -103,7 +104,7 @@ def test_order_pipeline_service_happy_path():
         assert processed_order.failure_step is None
         assert processed_order.attempt_count == 1
     finally:
-        storage_reset()
+        silent_storage_reset()
 
 
 class AlwaysFailPaymentService(PaymentService):
@@ -113,7 +114,7 @@ class AlwaysFailPaymentService(PaymentService):
 
 
 def test_payment_failure_retries_and_releases_inventory():
-    storage_reset()
+    silent_storage_reset()
 
     try:
         settings = Settings(
@@ -151,6 +152,7 @@ def test_payment_failure_retries_and_releases_inventory():
 
         processed_order = worker.process_next_order()
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "FAILED"
         assert processed_order.failure_step == FailureStep.CAPTURE_PAYMENT
         assert processed_order.failure_reason == "Payment capture failed"
@@ -159,7 +161,7 @@ def test_payment_failure_retries_and_releases_inventory():
         assert processed_order.steps.reserve_inventory == "RELEASED"
 
     finally:
-        storage_reset()
+        silent_storage_reset()
 
 
 class AlwaysFailNotificationService(NotificationService):
@@ -171,7 +173,7 @@ class AlwaysFailNotificationService(NotificationService):
 
 
 def test_notification_failure_retries():
-    storage_reset()
+    silent_storage_reset()
 
     try:
         settings = Settings(
@@ -209,6 +211,7 @@ def test_notification_failure_retries():
 
         processed_order = worker.process_next_order()
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "FAILED"
         assert processed_order.failure_step == FailureStep.SEND_NOTIFICATION
         assert processed_order.failure_reason == "Notification sending failed"
@@ -216,7 +219,7 @@ def test_notification_failure_retries():
         assert processed_order.steps.send_notification == "FAILED"
 
     finally:
-        storage_reset()
+        silent_storage_reset()
 
 
 class FailOncePaymentService(PaymentService):
@@ -234,7 +237,7 @@ class FailOncePaymentService(PaymentService):
 
 
 def test_payment_failure_then_retry_success_completes_order():
-    storage_reset()
+    silent_storage_reset()
 
     try:
         settings = Settings(
@@ -272,6 +275,7 @@ def test_payment_failure_then_retry_success_completes_order():
 
         processed_order = worker.process_next_order()
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "COMPLETED"
         assert processed_order.attempt_count == 2
         assert processed_order.steps.capture_payment == "CAPTURED"
@@ -281,7 +285,7 @@ def test_payment_failure_then_retry_success_completes_order():
         assert processed_order.last_error == "Payment capture failed"
 
     finally:
-        storage_reset()
+        silent_storage_reset()
 
 
 class FailOnceNotificationService(NotificationService):
@@ -302,7 +306,7 @@ class FailOnceNotificationService(NotificationService):
 
 
 def test_notification_failure_then_retry_success_completes_order():
-    storage_reset()
+    silent_storage_reset()
 
     try:
         settings = Settings(
@@ -340,6 +344,7 @@ def test_notification_failure_then_retry_success_completes_order():
 
         processed_order = worker.process_next_order()
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "COMPLETED"
         assert processed_order.attempt_count == 2
         assert processed_order.steps.send_notification == "SENT"
@@ -349,11 +354,11 @@ def test_notification_failure_then_retry_success_completes_order():
         assert processed_order.last_error == "Notification sending failed"
 
     finally:
-        storage_reset()
+        silent_storage_reset()
 
 
 def test_finalized_inventory_sale_is_not_applied_twice():
-    storage_reset()
+    silent_storage_reset()
 
     try:
         settings = Settings(
@@ -382,6 +387,7 @@ def test_finalized_inventory_sale_is_not_applied_twice():
 
         processed_order = pipeline.process_order(order_id)
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "COMPLETED"
         assert processed_order.steps.finalize_inventory_sale == "FINALIZED"
 
@@ -402,6 +408,7 @@ def test_finalized_inventory_sale_is_not_applied_twice():
 
         inventory_after_second_run = pipeline.inventory_service.list_inventory()
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "COMPLETED"
         assert processed_order.steps.finalize_inventory_sale == "FINALIZED"
         assert (
@@ -414,11 +421,11 @@ def test_finalized_inventory_sale_is_not_applied_twice():
         )
 
     finally:
-        storage_reset()
+        silent_storage_reset()
 
 
 def test_sent_notification_is_not_sent_twice():
-    storage_reset()
+    silent_storage_reset()
 
     try:
         settings = Settings(
@@ -447,6 +454,7 @@ def test_sent_notification_is_not_sent_twice():
 
         processed_order = pipeline.process_order(order_id)
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "COMPLETED"
         assert processed_order.steps.send_notification == "SENT"
 
@@ -469,6 +477,7 @@ def test_sent_notification_is_not_sent_twice():
             pipeline.notification_service.list_notifications()
         )
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "COMPLETED"
         assert processed_order.steps.send_notification == "SENT"
         assert len(notifications_after_second_run.root) == len(
@@ -480,11 +489,11 @@ def test_sent_notification_is_not_sent_twice():
         )
 
     finally:
-        storage_reset()
+        silent_storage_reset()
 
 
 def test_created_invoice_is_not_created_twice():
-    storage_reset()
+    silent_storage_reset()
 
     try:
         settings = Settings(
@@ -513,6 +522,7 @@ def test_created_invoice_is_not_created_twice():
 
         processed_order = pipeline.process_order(order_id)
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "COMPLETED"
         assert processed_order.steps.create_invoice == "CREATED"
 
@@ -529,10 +539,11 @@ def test_created_invoice_is_not_created_twice():
 
         invoices_after_second_run = pipeline.invoice_service.list_invoices()
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "COMPLETED"
         assert processed_order.steps.create_invoice == "CREATED"
         assert len(invoices_after_second_run.root) == len(invoices_after_first_run.root)
         assert invoices_after_second_run.root[invoice_id] == invoice_after_first_run
 
     finally:
-        storage_reset()
+        silent_storage_reset()

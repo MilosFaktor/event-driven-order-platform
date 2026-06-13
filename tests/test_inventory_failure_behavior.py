@@ -1,19 +1,11 @@
-import contextlib
-import io
-
 from app.core.config import Settings
-from app.models.inventory import Inventory
-from app.models.order import OrderItem
+from app.models.inventory import Inventory, InventoryItem
+from app.models.order import Order, OrderItem
 from app.models.types import FailureStep
 from app.services.inventory_service import InventoryService
 from app.services.order_service import OrderService
 from app.workflows.order_pipeline_service import OrderPipelineService
-from scripts.reset_json_data import storage_reset
-
-
-def silent_storage_reset():  # for hidden output
-    with contextlib.redirect_stdout(io.StringIO()):
-        storage_reset()
+from tests.helpers import silent_storage_reset
 
 
 def test_inventory_reservation_failure_fails_order_without_running_later_steps():
@@ -37,20 +29,20 @@ def test_inventory_reservation_failure_fails_order_without_running_later_steps()
         )
 
         inventory = {
-            "SKU-001": {
-                "name": "Laptop",
-                "price": 950.5,
-                "available_stock": 10,
-                "reserved_stock": 0,
-                "sold_stock": 0,
-            },
-            "SKU-002": {
-                "name": "Mouse",
-                "price": 30,
-                "available_stock": 10,
-                "reserved_stock": 0,
-                "sold_stock": 0,
-            },
+            "SKU-001": InventoryItem(
+                name="Laptop",
+                price=950.5,
+                available_stock=10,
+                reserved_stock=0,
+                sold_stock=0,
+            ),
+            "SKU-002": InventoryItem(
+                name="Mouse",
+                price=30,
+                available_stock=10,
+                reserved_stock=0,
+                sold_stock=0,
+            ),
         }
         inventory_service.save_inventory(Inventory(root=inventory))
 
@@ -66,6 +58,7 @@ def test_inventory_reservation_failure_fails_order_without_running_later_steps()
 
         processed_order = pipeline.process_order(order_id)
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "FAILED"
         assert processed_order.failure_step == FailureStep.RESERVE_INVENTORY
         assert processed_order.failure_reason == "Insufficient stock for Laptop"
@@ -100,20 +93,20 @@ def test_inventory_reservation_failure_does_not_partially_reserve_stock():
         )
 
         inventory = {
-            "SKU-001": {
-                "name": "Laptop",
-                "price": 950.5,
-                "available_stock": 10,
-                "reserved_stock": 0,
-                "sold_stock": 0,
-            },
-            "SKU-002": {
-                "name": "Mouse",
-                "price": 30,
-                "available_stock": 10,
-                "reserved_stock": 0,
-                "sold_stock": 0,
-            },
+            "SKU-001": InventoryItem(
+                name="Laptop",
+                price=950.5,
+                available_stock=10,
+                reserved_stock=0,
+                sold_stock=0,
+            ),
+            "SKU-002": InventoryItem(
+                name="Mouse",
+                price=30,
+                available_stock=10,
+                reserved_stock=0,
+                sold_stock=0,
+            ),
         }
         inventory_service.save_inventory(Inventory(root=inventory))
 
@@ -129,6 +122,7 @@ def test_inventory_reservation_failure_does_not_partially_reserve_stock():
 
         processed_order = pipeline.process_order(order_id)
 
+        assert isinstance(processed_order, Order)
         assert processed_order.status == "FAILED"
         assert processed_order.failure_step == FailureStep.RESERVE_INVENTORY
         assert processed_order.failure_reason == "Insufficient stock for Mouse"
