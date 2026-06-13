@@ -118,3 +118,6 @@ class InventoryService:
 
     def list_inventory(self) -> Inventory:
         return self.repo.list_inventory()
+
+    def save_inventory(self, inventory: Inventory) -> None:
+        self.repo.save_inventory(inventory)
