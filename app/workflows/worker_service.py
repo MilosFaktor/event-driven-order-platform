@@ -2,8 +2,7 @@ import time
 
 from app.core.config import Settings
 from app.core.logging_config import get_logger
-from app.services.queue_service import ProcessingQueueService
-from app.workflows.order_pipeline_service import OrderPipelineService
+from app.workflows.protocols import OrderPipelineProtocol, QueueServiceProtocol
 
 logger = get_logger("worker.service")
 
@@ -12,8 +11,8 @@ class WorkerService:
     def __init__(
         self,
         settings: Settings,
-        queue_service: ProcessingQueueService,
-        order_pipeline_service: OrderPipelineService,
+        queue_service: QueueServiceProtocol,
+        order_pipeline_service: OrderPipelineProtocol,
     ):
         self.settings = settings
 

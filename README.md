@@ -18,9 +18,9 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current completed version: `v0.6.4`
+Current completed version: `v0.7.0`
 
-Next planned work: broader tests or create-order workflow cleanup.
+Next planned work: create-order workflow cleanup and thin API boundary.
 
 The current local version includes:
 
@@ -54,7 +54,11 @@ The current local version includes:
 - previous failure metadata with `last_failure_step` and `last_error`
 - pipeline checkpoint guards that skip already completed side-effect steps
 - tests proving inventory finalization, invoice creation, and notification sending are not applied twice
-- initial pytest coverage for happy path, retry delay, retry exhaustion, retry recovery, and repeated-step guards
+- behavior-focused pytest coverage for create-order API behavior, worker decisions, inventory reservation failures, retry behavior, and repeated-step guards
+- create-order API tests for request validation, idempotency behavior, saved orders, and queue enqueueing
+- worker service tests for empty queues, stale queue items, and non-retryable failed orders
+- inventory failure tests proving reservation failures stop later pipeline steps and do not partially reserve stock
+- narrow WorkerService dependency protocols for queue-like and pipeline-like behavior
 - stale queued order handling for missing order IDs
 - order processing pipeline:
   - reserve inventory
@@ -290,8 +294,7 @@ GitHub Actions currently runs Ruff checks and pytest, and the `main` branch is p
 
 Planned next versions:
 
-- `v0.7.0` - broader tests
-- create-order workflow cleanup
+- `v0.8.0` - create-order workflow cleanup / thin API boundary
+- responsibility and layer documentation polish
 - future AWS SQS / DLQ integration
-- `v0.8.0` - documentation polish
 - `v1.0.0` - local Phase 1 MVP complete

@@ -631,12 +631,57 @@ Local DLQ simulation is intentionally not implemented before MVP. In the future
 AWS version, SQS redrive policy should move exhausted messages to a DLQ. The
 application should focus on saving useful order failure state and metadata.
 
+## v0.7.0 - Behavior-Focused Tests
+
+Goal: add broader behavior coverage before reshaping the create-order API and
+workflow boundaries.
+
+Implemented in v0.7.0:
+
+```text
+- create-order API behavior tests
+- request validation coverage for missing Idempotency-Key
+- request validation coverage for invalid create-order bodies
+- valid create-order request returns a PENDING saved order
+- created order ID is added to the processing queue
+- duplicate Idempotency-Key returns the existing order
+- duplicate Idempotency-Key does not enqueue duplicate queued work
+- WorkerService decision tests
+- empty queue returns None
+- stale/orphan queue item is discarded
+- non-retryable failed order dequeues and stops without retry
+- inventory reservation failure tests
+- reservation failure marks the order FAILED at RESERVE_INVENTORY
+- reservation failure leaves later pipeline steps PENDING
+- reservation failure does not partially reserve earlier valid items
+- shared test helpers for storage reset and default order creation
+- narrow WorkerService protocols for queue-like and pipeline-like dependencies
+```
+
+Why it mattered:
+
+```text
+The project now has behavior tests around the client-facing API boundary,
+worker decision logic, retry behavior, checkpoint idempotency, and inventory
+reservation failure behavior.
+```
+
+This creates a safer base for the next cleanup: moving create-order orchestration
+out of the FastAPI route while keeping the public API behavior stable.
+
+Testing direction:
+
+```text
+Test behavior and contracts, not every implementation line.
+Use shared helpers only for boring repeated setup.
+Keep behavior-specific setup inline when it explains the scenario.
+```
+
 ## Next Versions
 
 Current and planned next steps:
 
-- `v0.7.0` - broader tests
-- create-order workflow cleanup
+- `v0.8.0` - create-order workflow cleanup / thin API boundary
+- responsibility and layer documentation polish
 - future AWS SQS / DLQ integration
-- `v0.8.0` - documentation polish
 - `v1.0.0` - local Phase 1 MVP complete
