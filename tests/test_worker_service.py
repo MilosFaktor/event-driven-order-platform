@@ -1,11 +1,11 @@
 from app.core.config import Settings, settings
-from app.models.order import Order, OrderItem
+from app.models.order import Order
 from app.models.types import FailureStep
 from app.services.order_service import OrderService
 from app.services.queue_service import ProcessingQueueService
 from app.workflows.order_pipeline_service import OrderPipelineService
 from app.workflows.worker_service import WorkerService
-from tests.helpers import silent_storage_reset
+from tests.helpers import create_default_test_order, silent_storage_reset
 
 
 def test_empty_queue_returns_none():
@@ -63,18 +63,11 @@ def test_non_retryable_failed_order_dequeues_and_stops():
             settings=test_settings, order_service=order_service
         )
 
-        items = [
-            OrderItem(sku="SKU-001", quantity=1),
-            OrderItem(sku="SKU-002", quantity=2),
-        ]
-        order_service.create_order(
-            order_id="ord_123",
-            customer_id="cust_123",
-            items=items,
-            currency="EUR",
-        )
+        order_id = "ord_123"
 
-        order = order_service.get_order("ord_123")
+        create_default_test_order(order_service, order_id)
+
+        order = order_service.get_order(order_id)
         assert isinstance(order, Order)
         order.status = "FAILED"
         order.steps.reserve_inventory = "FAILED"
@@ -82,7 +75,7 @@ def test_non_retryable_failed_order_dequeues_and_stops():
         order.failure_reason = "Inventory reservation failed"
         order_service.save_order(order)
 
-        queue_service.enqueue_order("ord_123")
+        queue_service.enqueue_order(order_id)
 
         worker_service = WorkerService(
             settings=test_settings,

@@ -8,7 +8,7 @@ from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 from app.workflows.order_pipeline_service import OrderPipelineService
 from app.workflows.worker_service import WorkerService
-from tests.helpers import silent_storage_reset
+from tests.helpers import create_default_test_order, silent_storage_reset
 
 
 def test_failure_step_capture_payment_value():
@@ -30,7 +30,8 @@ class FakeQueueService:
 
 
 class FakeOrderPipelineService:
-    pass
+    def process_order(self, order_id) -> Order | None:
+        return None
 
 
 def test_retry_delay_uses_exponential_backoff():
@@ -60,36 +61,15 @@ def test_order_pipeline_service_happy_path():
             retry_base_delay_seconds=1,
             retry_backoff_multiplier=2,
         )
-        request = CreateOrderRequest(
-            customer_id="cust_123",
-            items=[
-                OrderItemRequest(
-                    sku="SKU-001",
-                    quantity=2,
-                ),
-                OrderItemRequest(
-                    sku="SKU-002",
-                    quantity=1,
-                ),
-            ],
-            currency="EUR",
-        )
+
+        order_id = "ord_123"
 
         order_service = OrderService()
-
-        order_service.create_order(
-            order_id="ord_123",
-            customer_id=request.customer_id,
-            items=[
-                OrderItem(sku=item.sku, quantity=item.quantity)
-                for item in request.items
-            ],
-            currency=request.currency,
-        )
+        create_default_test_order(order_service, order_id)
 
         order_pipeline = OrderPipelineService(settings=settings)
 
-        processed_order = order_pipeline.process_order("ord_123")
+        processed_order = order_pipeline.process_order(order_id)
 
         assert processed_order is not None
         assert processed_order.order_id == "ord_123"
@@ -129,15 +109,7 @@ def test_payment_failure_retries_and_releases_inventory():
         order_id = "ord_retry1"
 
         order_service = OrderService()
-        order_service.create_order(
-            order_id=order_id,
-            customer_id="cust_123",
-            items=[
-                OrderItem(sku="SKU-001", quantity=2),
-                OrderItem(sku="SKU-002", quantity=1),
-            ],
-            currency="EUR",
-        )
+        create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(
             settings=settings,
@@ -188,15 +160,7 @@ def test_notification_failure_retries():
         order_id = "ord_retry1"
 
         order_service = OrderService()
-        order_service.create_order(
-            order_id=order_id,
-            customer_id="cust_123",
-            items=[
-                OrderItem(sku="SKU-001", quantity=2),
-                OrderItem(sku="SKU-002", quantity=1),
-            ],
-            currency="EUR",
-        )
+        create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(
             settings=settings,
@@ -252,15 +216,7 @@ def test_payment_failure_then_retry_success_completes_order():
         order_id = "ord_retry1"
 
         order_service = OrderService()
-        order_service.create_order(
-            order_id=order_id,
-            customer_id="cust_123",
-            items=[
-                OrderItem(sku="SKU-001", quantity=2),
-                OrderItem(sku="SKU-002", quantity=1),
-            ],
-            currency="EUR",
-        )
+        create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(
             settings=settings,
@@ -321,15 +277,7 @@ def test_notification_failure_then_retry_success_completes_order():
         order_id = "ord_retry1"
 
         order_service = OrderService()
-        order_service.create_order(
-            order_id=order_id,
-            customer_id="cust_123",
-            items=[
-                OrderItem(sku="SKU-001", quantity=2),
-                OrderItem(sku="SKU-002", quantity=1),
-            ],
-            currency="EUR",
-        )
+        create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(
             settings=settings,
@@ -373,15 +321,7 @@ def test_finalized_inventory_sale_is_not_applied_twice():
         order_id = "ord_retry1"
 
         order_service = OrderService()
-        order_service.create_order(
-            order_id=order_id,
-            customer_id="cust_123",
-            items=[
-                OrderItem(sku="SKU-001", quantity=2),
-                OrderItem(sku="SKU-002", quantity=1),
-            ],
-            currency="EUR",
-        )
+        create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(settings=settings)
 
@@ -440,15 +380,7 @@ def test_sent_notification_is_not_sent_twice():
         order_id = "ord_retry1"
 
         order_service = OrderService()
-        order_service.create_order(
-            order_id=order_id,
-            customer_id="cust_123",
-            items=[
-                OrderItem(sku="SKU-001", quantity=2),
-                OrderItem(sku="SKU-002", quantity=1),
-            ],
-            currency="EUR",
-        )
+        create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(settings=settings)
 
@@ -508,15 +440,7 @@ def test_created_invoice_is_not_created_twice():
         order_id = "ord_retry1"
 
         order_service = OrderService()
-        order_service.create_order(
-            order_id=order_id,
-            customer_id="cust_123",
-            items=[
-                OrderItem(sku="SKU-001", quantity=2),
-                OrderItem(sku="SKU-002", quantity=1),
-            ],
-            currency="EUR",
-        )
+        create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(settings=settings)
 
