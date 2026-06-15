@@ -3,6 +3,7 @@ from fastapi import FastAPI, Header, HTTPException, Response
 from app.core.dependencies import app_dependencies as deps
 from app.core.logging_config import configure_logging_api, get_logger
 from app.exceptions import InconsistentIdempotencyState
+from app.models.order import Order
 from app.models.orders_request import CreateOrderRequest, CreateOrderResponse
 from app.models.types import WorkerProcessResultOutcome
 from app.workflows.create_order_workflow import CreateOrderResult
@@ -36,7 +37,7 @@ def create_new_order(
     request: CreateOrderRequest,
     response: Response,
     idempotency_key: str = Header(..., alias="Idempotency-Key"),
-):
+) -> CreateOrderResponse:
     logger.info(
         "create_order_request_received customer_id=%s item_count=%s currency=%s",
         request.customer_id,
@@ -77,7 +78,7 @@ def read_orders():
 
 
 @app.get("/v1/orders/{order_id}")
-def read_order(order_id: str):
+def read_order(order_id: str) -> Order:
     logger.info("read_order_request_received order_id=%s", order_id)
     order = order_service.get_order(order_id)
     if order is None:
