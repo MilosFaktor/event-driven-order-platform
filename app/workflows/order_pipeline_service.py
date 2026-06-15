@@ -8,7 +8,7 @@ from app.services.notification_service import NotificationService
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 
-logger = get_logger("orders.pipeline")
+logger = get_logger("order.pipeline")
 
 PIPELINE_STEPS = [
     FailureStep.RESERVE_INVENTORY,

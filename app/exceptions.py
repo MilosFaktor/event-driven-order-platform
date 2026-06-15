@@ -4,3 +4,7 @@ class PaymentCaptureError(Exception):
 
 class NotificationSendError(Exception):
     pass
+
+
+class InconsistentIdempotencyState(Exception):
+    pass

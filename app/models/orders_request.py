@@ -36,3 +36,8 @@ class CreateOrderRequest(BaseModel):
         if not v:
             raise ValueError("Order Request must contain at least one item")
         return v
+
+
+class CreateOrderResponse(BaseModel):
+    order_id: str
+    status: str
