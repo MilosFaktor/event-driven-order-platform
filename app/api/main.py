@@ -4,6 +4,7 @@ from app.core.dependencies import app_dependencies as deps
 from app.core.logging_config import configure_logging_api, get_logger
 from app.exceptions import InconsistentIdempotencyState
 from app.models.orders_request import CreateOrderRequest, CreateOrderResponse
+from app.models.types import WorkerProcessResultOutcome
 from app.workflows.create_order_workflow import CreateOrderResult
 
 app = FastAPI()
@@ -93,17 +94,29 @@ def worker_process_next_order():
     logger.info("manual_worker_process_next_requested")
     result = worker_service.process_next_order()
     if result is None:
+        logger.warning("manual_worker_process_next_no_result")
+        raise HTTPException(
+            status_code=500, detail="Worker process did not return a result"
+        )
+
+    if result.outcome == WorkerProcessResultOutcome.NO_WORK:
         logger.info("manual_worker_process_next_empty_queue")
         raise HTTPException(status_code=200, detail="No orders to process")
 
-    elif result == "stale_queue_discarded":
+    elif result.outcome == WorkerProcessResultOutcome.STALE_QUEUE_DISCARDED:
         logger.warning("manual_worker_process_next_stale_queue_discarded")
         raise HTTPException(status_code=200, detail="Stale queue discarded")
 
+    if result.order is None:
+        logger.error("manual_worker_process_next_null_order")
+        raise HTTPException(
+            status_code=500, detail="Worker process returned null order"
+        )
+
     logger.info(
         "manual_worker_process_next_finished order_id=%s status=%s",
-        result.order_id,
-        result.status,
+        result.order.order_id,
+        result.order.status,
     )
     return result
 
