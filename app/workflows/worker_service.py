@@ -1,10 +1,20 @@
 import time
+from dataclasses import dataclass
 
 from app.core.config import Settings
 from app.core.logging_config import get_logger
+from app.models.order import Order
+from app.models.types import WorkerProcessResultOutcome
 from app.workflows.protocols import OrderPipelineProtocol, QueueServiceProtocol
 
 logger = get_logger("worker.service")
+
+
+@dataclass
+class WorkerProcessResult:
+    outcome: WorkerProcessResultOutcome
+    order: Order | None
+    message: str
 
 
 class WorkerService:
@@ -24,11 +34,13 @@ class WorkerService:
             self.settings.retry_backoff_multiplier ** (attempt - 1)
         )
 
-    def process_next_order(self):
+    def process_next_order(self) -> WorkerProcessResult:
         order_id = self.queue_service.get_first_queue_item()
         if order_id is None:
             logger.warning("no_order_to_process")
-            return None
+            return WorkerProcessResult(
+                WorkerProcessResultOutcome.NO_WORK, None, "No work to do"
+            )
         logger.info("order_processing_started order_id=%s", order_id)
 
         for attempt in range(1, self.settings.max_processing_attempts + 1):
@@ -44,12 +56,20 @@ class WorkerService:
             if processed_order is None:
                 self.queue_service.dequeue_order()
                 logger.warning("stale_queue_message_discarded order_id=%s", order_id)
-                return "stale_queue_discarded"
+                return WorkerProcessResult(
+                    WorkerProcessResultOutcome.STALE_QUEUE_DISCARDED,
+                    None,
+                    "Stale queue message discarded",
+                )
 
             if processed_order.status == "COMPLETED":
                 self.queue_service.dequeue_order()
                 logger.info("order_processing_finished order_id=%s", order_id)
-                return processed_order
+                return WorkerProcessResult(
+                    WorkerProcessResultOutcome.SUCCESS,
+                    processed_order,
+                    "Order processed successfully",
+                )
 
             if processed_order.status == "FAILED":
                 if (
@@ -64,7 +84,11 @@ class WorkerService:
                             self.settings.max_processing_attempts,
                         )
                         self.queue_service.dequeue_order()
-                        return processed_order
+                        return WorkerProcessResult(
+                            WorkerProcessResultOutcome.FAILURE,
+                            processed_order,
+                            "Max attempts reached",
+                        )
 
                     delay_seconds = self.calculate_retry_delay_seconds(attempt)
                     logger.info(
@@ -82,7 +106,15 @@ class WorkerService:
                     order_id,
                     processed_order.failure_step,
                 )
-                return processed_order
+                return WorkerProcessResult(
+                    WorkerProcessResultOutcome.FAILURE,
+                    processed_order,
+                    "Non-retryable failure occurred",
+                )
+
+        raise RuntimeError(
+            f"Worker processing ended unexpectedly for order_id={order_id}"
+        )
 
     def has_work(self) -> bool:
         return self.queue_service.not_queue_empty()

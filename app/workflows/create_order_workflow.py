@@ -29,7 +29,7 @@ class CreateOrderWorkflow:
         self.idempotency_service = idempotency_service or IdempotencyKeysService()
         self.queue_service = queue_service or ProcessingQueueService()
 
-    def execute(self, request, idempotency_key):
+    def execute(self, request, idempotency_key) -> CreateOrderResult:
 
         existing_order_id = self.idempotency_service.get_order_id_by_idempotency_key(
             idempotency_key

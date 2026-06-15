@@ -1,14 +1,14 @@
 from app.core.config import Settings, settings
 from app.models.order import Order
-from app.models.types import FailureStep
+from app.models.types import FailureStep, WorkerProcessResultOutcome
 from app.services.order_service import OrderService
 from app.services.queue_service import ProcessingQueueService
 from app.workflows.order_pipeline_service import OrderPipelineService
-from app.workflows.worker_service import WorkerService
+from app.workflows.worker_service import WorkerProcessResult, WorkerService
 from tests.helpers import create_default_test_order, silent_storage_reset
 
 
-def test_empty_queue_returns_none():
+def test_empty_queue_returns_no_work():
     silent_storage_reset()
 
     try:
@@ -23,7 +23,9 @@ def test_empty_queue_returns_none():
         )
         result = worker.process_next_order()
 
-        assert result is None
+        assert isinstance(result, WorkerProcessResult)
+        assert result.outcome == WorkerProcessResultOutcome.NO_WORK
+        assert result.order is None
 
     finally:
         silent_storage_reset()
@@ -45,7 +47,9 @@ def test_stale_queue_item_is_discarded():
         )
         result = worker.process_next_order()
 
-        assert result == "stale_queue_discarded"
+        assert isinstance(result, WorkerProcessResult)
+        assert result.outcome == WorkerProcessResultOutcome.STALE_QUEUE_DISCARDED
+        assert result.order is None
         assert queue_service.list_processing_queue().root == []
 
     finally:
@@ -84,10 +88,12 @@ def test_non_retryable_failed_order_dequeues_and_stops():
         )
         result = worker_service.process_next_order()
 
-        assert isinstance(result, Order)
-        assert result.status == "FAILED"
-        assert result.failure_step == FailureStep.RESERVE_INVENTORY
-        assert result.failure_reason == "Inventory reservation failed"
+        assert isinstance(result, WorkerProcessResult)
+        assert result.outcome == WorkerProcessResultOutcome.FAILURE
+        assert isinstance(result.order, Order)
+        assert result.order.status == "FAILED"
+        assert result.order.failure_step == FailureStep.RESERVE_INVENTORY
+        assert result.order.failure_reason == "Inventory reservation failed"
         assert queue_service.list_processing_queue().root == []
 
     finally:

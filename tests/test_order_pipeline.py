@@ -2,12 +2,12 @@ from app.core.config import Settings
 from app.exceptions import NotificationSendError, PaymentCaptureError
 from app.models.order import Order, OrderItem
 from app.models.orders_request import CreateOrderRequest, OrderItemRequest
-from app.models.types import FailureStep
+from app.models.types import FailureStep, WorkerProcessResultOutcome
 from app.services.notification_service import NotificationService
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 from app.workflows.order_pipeline_service import OrderPipelineService
-from app.workflows.worker_service import WorkerService
+from app.workflows.worker_service import WorkerProcessResult, WorkerService
 from tests.helpers import create_default_test_order, silent_storage_reset
 
 
@@ -124,13 +124,15 @@ def test_payment_failure_retries_and_releases_inventory():
 
         processed_order = worker.process_next_order()
 
-        assert isinstance(processed_order, Order)
-        assert processed_order.status == "FAILED"
-        assert processed_order.failure_step == FailureStep.CAPTURE_PAYMENT
-        assert processed_order.failure_reason == "Payment capture failed"
-        assert processed_order.attempt_count == 2
-        assert processed_order.steps.capture_payment == "FAILED"
-        assert processed_order.steps.reserve_inventory == "RELEASED"
+        assert isinstance(processed_order, WorkerProcessResult)
+        assert processed_order.outcome == WorkerProcessResultOutcome.FAILURE
+        assert isinstance(processed_order.order, Order)
+        assert processed_order.order.status == "FAILED"
+        assert processed_order.order.failure_step == FailureStep.CAPTURE_PAYMENT
+        assert processed_order.order.failure_reason == "Payment capture failed"
+        assert processed_order.order.attempt_count == 2
+        assert processed_order.order.steps.capture_payment == "FAILED"
+        assert processed_order.order.steps.reserve_inventory == "RELEASED"
 
     finally:
         silent_storage_reset()
@@ -175,12 +177,14 @@ def test_notification_failure_retries():
 
         processed_order = worker.process_next_order()
 
-        assert isinstance(processed_order, Order)
-        assert processed_order.status == "FAILED"
-        assert processed_order.failure_step == FailureStep.SEND_NOTIFICATION
-        assert processed_order.failure_reason == "Notification sending failed"
-        assert processed_order.attempt_count == 2
-        assert processed_order.steps.send_notification == "FAILED"
+        assert isinstance(processed_order, WorkerProcessResult)
+        assert processed_order.outcome == WorkerProcessResultOutcome.FAILURE
+        assert isinstance(processed_order.order, Order)
+        assert processed_order.order.status == "FAILED"
+        assert processed_order.order.failure_step == FailureStep.SEND_NOTIFICATION
+        assert processed_order.order.failure_reason == "Notification sending failed"
+        assert processed_order.order.attempt_count == 2
+        assert processed_order.order.steps.send_notification == "FAILED"
 
     finally:
         silent_storage_reset()
@@ -231,14 +235,17 @@ def test_payment_failure_then_retry_success_completes_order():
 
         processed_order = worker.process_next_order()
 
-        assert isinstance(processed_order, Order)
-        assert processed_order.status == "COMPLETED"
-        assert processed_order.attempt_count == 2
-        assert processed_order.steps.capture_payment == "CAPTURED"
-        assert processed_order.failure_step is None
-        assert processed_order.last_failure_step == "CAPTURE_PAYMENT"
-        assert processed_order.failure_reason is None
-        assert processed_order.last_error == "Payment capture failed"
+        assert isinstance(processed_order, WorkerProcessResult)
+        assert processed_order.outcome == WorkerProcessResultOutcome.SUCCESS
+
+        assert isinstance(processed_order.order, Order)
+        assert processed_order.order.status == "COMPLETED"
+        assert processed_order.order.attempt_count == 2
+        assert processed_order.order.steps.capture_payment == "CAPTURED"
+        assert processed_order.order.failure_step is None
+        assert processed_order.order.last_failure_step == "CAPTURE_PAYMENT"
+        assert processed_order.order.failure_reason is None
+        assert processed_order.order.last_error == "Payment capture failed"
 
     finally:
         silent_storage_reset()
@@ -292,14 +299,16 @@ def test_notification_failure_then_retry_success_completes_order():
 
         processed_order = worker.process_next_order()
 
-        assert isinstance(processed_order, Order)
-        assert processed_order.status == "COMPLETED"
-        assert processed_order.attempt_count == 2
-        assert processed_order.steps.send_notification == "SENT"
-        assert processed_order.failure_step is None
-        assert processed_order.last_failure_step == FailureStep.SEND_NOTIFICATION
-        assert processed_order.failure_reason is None
-        assert processed_order.last_error == "Notification sending failed"
+        assert isinstance(processed_order, WorkerProcessResult)
+        assert processed_order.outcome == WorkerProcessResultOutcome.SUCCESS
+        assert isinstance(processed_order.order, Order)
+        assert processed_order.order.status == "COMPLETED"
+        assert processed_order.order.attempt_count == 2
+        assert processed_order.order.steps.send_notification == "SENT"
+        assert processed_order.order.failure_step is None
+        assert processed_order.order.last_failure_step == FailureStep.SEND_NOTIFICATION
+        assert processed_order.order.failure_reason is None
+        assert processed_order.order.last_error == "Notification sending failed"
 
     finally:
         silent_storage_reset()
