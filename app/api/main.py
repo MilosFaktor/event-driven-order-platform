@@ -2,8 +2,9 @@ from fastapi import FastAPI, Header, HTTPException, Response
 
 from app.core.dependencies import app_dependencies as deps
 from app.core.logging_config import configure_logging_api, get_logger
-from app.models.order import OrderItem
-from app.models.orders_request import CreateOrderRequest
+from app.exceptions import InconsistentIdempotencyState
+from app.models.orders_request import CreateOrderRequest, CreateOrderResponse
+from app.workflows.create_order_workflow import CreateOrderResult
 
 app = FastAPI()
 
@@ -14,6 +15,7 @@ idempotency_service = deps.idempotency_service()
 invoice_service = deps.invoice_service()
 notification_service = deps.notification_service()
 worker_service = deps.worker_service()
+create_order_workflow = deps.create_order_workflow()
 
 
 configure_logging_api()
@@ -28,7 +30,7 @@ def read_root():
 # ======= orders section ========
 
 
-@app.post("/v1/orders", status_code=201)
+@app.post("/v1/orders", status_code=201, response_model=CreateOrderResponse)
 def create_new_order(
     request: CreateOrderRequest,
     response: Response,
@@ -40,52 +42,32 @@ def create_new_order(
         len(request.items),
         request.currency,
     )
-    existing_order_id = idempotency_service.get_order_id_by_idempotency_key(
-        idempotency_key
-    )
-
-    # idempotency check
-    if existing_order_id is not None:
-        logger.info("idempotent_order_request_matched order_id=%s", existing_order_id)
-        existing_order = order_service.get_order(existing_order_id)
-
-        if existing_order is None:
-            logger.error(
-                "inconsistent_idempotency_state order_id=%s",
-                existing_order_id,
-            )
-            raise HTTPException(
-                status_code=500, detail="Inconsistent idempotency state"
-            )
-        response.status_code = 200
-        logger.info(
-            "create_order_response_returned order_id=%s status=%s http_status=200",
-            existing_order.order_id,
-            existing_order.status,
+    try:
+        result: CreateOrderResult = create_order_workflow.execute(
+            request, idempotency_key
         )
-        return {
-            "order_id": existing_order.order_id,
-            "status": existing_order.status,
-        }
+        if result.created is False:
+            response.status_code = 200
+            logger.info(
+                "create_order_idempotent_response_returned order_id=%s status=%s http_status=200",
+                result.order_id,
+                result.status,
+            )
 
-    order_id = order_service.generate_order_id()
-    order_service.create_order(
-        order_id=order_id,
-        customer_id=request.customer_id,
-        items=[
-            OrderItem(sku=item.sku, quantity=item.quantity) for item in request.items
-        ],
-        currency=request.currency,
-    )
-    idempotency_service.save_idempotency_key(idempotency_key, order_id)
-    queue_service.enqueue_order(order_id)
-    logger.info("order_created_and_enqueued order_id=%s", order_id)
-    logger.info(
-        "create_order_response_returned order_id=%s status=PENDING http_status=201",
-        order_id,
-    )
+        if result.created is True:
+            logger.info(
+                "create_order_successful order_id=%s status=%s http_status=201",
+                result.order_id,
+                result.status,
+            )
 
-    return {"order_id": order_id, "status": "PENDING"}
+        return CreateOrderResponse(
+            order_id=result.order_id,
+            status=result.status,
+        )
+
+    except InconsistentIdempotencyState:
+        raise HTTPException(status_code=500, detail="Inconsistent idempotency state")
 
 
 @app.get("/v1/orders")
