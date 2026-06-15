@@ -9,7 +9,7 @@ from app.core.config import Settings
 from app.core.logging_config import get_logger
 from app.models.order import OrderItem
 from app.models.orders_request import CreateOrderRequest, OrderItemRequest
-from app.models.types import FailureStep
+from app.models.types import OrderFailureStep, OrderStatus
 from app.services.order_service import OrderService
 from app.workflows.order_pipeline_service import OrderPipelineService
 from scripts.reset_json_data import storage_reset
@@ -17,18 +17,18 @@ from scripts.reset_json_data import storage_reset
 logger = get_logger("sandbox.pipeline")
 
 PIPELINE_STEPS = [
-    FailureStep.RESERVE_INVENTORY,
-    FailureStep.CAPTURE_PAYMENT,
-    FailureStep.FINALIZE_INVENTORY_SALE,
-    FailureStep.CREATE_INVOICE,
-    FailureStep.SEND_NOTIFICATION,
+    OrderFailureStep.RESERVE_INVENTORY,
+    OrderFailureStep.CAPTURE_PAYMENT,
+    OrderFailureStep.FINALIZE_INVENTORY_SALE,
+    OrderFailureStep.CREATE_INVOICE,
+    OrderFailureStep.SEND_NOTIFICATION,
 ]
 
 
 class Sandbox(OrderPipelineService):
     def get_start_step(self, order):
         if (
-            order.status == "FAILED"
+            order.status == OrderStatus.FAILED
             and order.failure_step in self.settings.retryable_failure_steps
         ):
             return order.failure_step
@@ -42,11 +42,11 @@ class Sandbox(OrderPipelineService):
     def process_order(self, order_id):
 
         step_handlers = {
-            FailureStep.RESERVE_INVENTORY: self.reserve_inventory_step,
-            FailureStep.CAPTURE_PAYMENT: self.capture_payment_step,
-            FailureStep.FINALIZE_INVENTORY_SALE: self.finalize_inventory_sale_step,
-            FailureStep.CREATE_INVOICE: self.create_invoice_step,
-            FailureStep.SEND_NOTIFICATION: self.send_notification_step,
+            OrderFailureStep.RESERVE_INVENTORY: self.reserve_inventory_step,
+            OrderFailureStep.CAPTURE_PAYMENT: self.capture_payment_step,
+            OrderFailureStep.FINALIZE_INVENTORY_SALE: self.finalize_inventory_sale_step,
+            OrderFailureStep.CREATE_INVOICE: self.create_invoice_step,
+            OrderFailureStep.SEND_NOTIFICATION: self.send_notification_step,
         }
 
         logger.info("order_processing_pipeline_started order_id=%s", order_id)
@@ -85,7 +85,7 @@ class Sandbox(OrderPipelineService):
 
         for step in self.get_steps_from(start_step):
             order = step_handlers[step](order, order_id)
-            if order.status == "FAILED":
+            if order.status == OrderStatus.FAILED:
                 return order
 
         self.mark_order_status(order, "COMPLETED")

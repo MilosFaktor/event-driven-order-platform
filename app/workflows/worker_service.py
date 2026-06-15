@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from app.core.config import Settings
 from app.core.logging_config import get_logger
 from app.models.order import Order
-from app.models.types import WorkerProcessResultOutcome
+from app.models.types import OrderStatus, WorkerProcessResultOutcome
 from app.workflows.protocols import OrderPipelineProtocol, QueueServiceProtocol
 
 logger = get_logger("worker.service")
@@ -62,7 +62,7 @@ class WorkerService:
                     "Stale queue message discarded",
                 )
 
-            if processed_order.status == "COMPLETED":
+            if processed_order.status == OrderStatus.COMPLETED:
                 self.queue_service.dequeue_order()
                 logger.info("order_processing_finished order_id=%s", order_id)
                 return WorkerProcessResult(
@@ -71,7 +71,7 @@ class WorkerService:
                     "Order processed successfully",
                 )
 
-            if processed_order.status == "FAILED":
+            if processed_order.status == OrderStatus.FAILED:
                 if (
                     processed_order.failure_step
                     in self.settings.retryable_failure_steps

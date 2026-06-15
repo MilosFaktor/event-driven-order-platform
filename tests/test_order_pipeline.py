@@ -2,7 +2,7 @@ from app.core.config import Settings
 from app.exceptions import NotificationSendError, PaymentCaptureError
 from app.models.order import Order, OrderItem
 from app.models.orders_request import CreateOrderRequest, OrderItemRequest
-from app.models.types import FailureStep, WorkerProcessResultOutcome
+from app.models.types import OrderFailureStep, WorkerProcessResultOutcome
 from app.services.notification_service import NotificationService
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
@@ -12,7 +12,7 @@ from tests.helpers import create_default_test_order, silent_storage_reset
 
 
 def test_failure_step_capture_payment_value():
-    assert FailureStep.CAPTURE_PAYMENT == "CAPTURE_PAYMENT"
+    assert OrderFailureStep.CAPTURE_PAYMENT == "CAPTURE_PAYMENT"
 
 
 class FakeQueueService:
@@ -102,7 +102,7 @@ def test_payment_failure_retries_and_releases_inventory():
             retry_base_delay_seconds=0,
             retry_backoff_multiplier=2,
             retryable_failure_steps={
-                FailureStep.CAPTURE_PAYMENT,
+                OrderFailureStep.CAPTURE_PAYMENT,
             },
         )
 
@@ -128,7 +128,7 @@ def test_payment_failure_retries_and_releases_inventory():
         assert processed_order.outcome == WorkerProcessResultOutcome.FAILURE
         assert isinstance(processed_order.order, Order)
         assert processed_order.order.status == "FAILED"
-        assert processed_order.order.failure_step == FailureStep.CAPTURE_PAYMENT
+        assert processed_order.order.failure_step == OrderFailureStep.CAPTURE_PAYMENT
         assert processed_order.order.failure_reason == "Payment capture failed"
         assert processed_order.order.attempt_count == 2
         assert processed_order.order.steps.capture_payment == "FAILED"
@@ -155,7 +155,7 @@ def test_notification_failure_retries():
             retry_base_delay_seconds=0,
             retry_backoff_multiplier=2,
             retryable_failure_steps={
-                FailureStep.SEND_NOTIFICATION,
+                OrderFailureStep.SEND_NOTIFICATION,
             },
         )
 
@@ -181,7 +181,7 @@ def test_notification_failure_retries():
         assert processed_order.outcome == WorkerProcessResultOutcome.FAILURE
         assert isinstance(processed_order.order, Order)
         assert processed_order.order.status == "FAILED"
-        assert processed_order.order.failure_step == FailureStep.SEND_NOTIFICATION
+        assert processed_order.order.failure_step == OrderFailureStep.SEND_NOTIFICATION
         assert processed_order.order.failure_reason == "Notification sending failed"
         assert processed_order.order.attempt_count == 2
         assert processed_order.order.steps.send_notification == "FAILED"
@@ -213,7 +213,7 @@ def test_payment_failure_then_retry_success_completes_order():
             retry_base_delay_seconds=0,
             retry_backoff_multiplier=2,
             retryable_failure_steps={
-                FailureStep.CAPTURE_PAYMENT,
+                OrderFailureStep.CAPTURE_PAYMENT,
             },
         )
 
@@ -277,7 +277,7 @@ def test_notification_failure_then_retry_success_completes_order():
             retry_base_delay_seconds=0,
             retry_backoff_multiplier=2,
             retryable_failure_steps={
-                FailureStep.SEND_NOTIFICATION,
+                OrderFailureStep.SEND_NOTIFICATION,
             },
         )
 
@@ -306,7 +306,10 @@ def test_notification_failure_then_retry_success_completes_order():
         assert processed_order.order.attempt_count == 2
         assert processed_order.order.steps.send_notification == "SENT"
         assert processed_order.order.failure_step is None
-        assert processed_order.order.last_failure_step == FailureStep.SEND_NOTIFICATION
+        assert (
+            processed_order.order.last_failure_step
+            == OrderFailureStep.SEND_NOTIFICATION
+        )
         assert processed_order.order.failure_reason is None
         assert processed_order.order.last_error == "Notification sending failed"
 
@@ -323,7 +326,7 @@ def test_finalized_inventory_sale_is_not_applied_twice():
             retry_base_delay_seconds=0,
             retry_backoff_multiplier=2,
             retryable_failure_steps={
-                FailureStep.FINALIZE_INVENTORY_SALE,
+                OrderFailureStep.FINALIZE_INVENTORY_SALE,
             },
         )
 
@@ -349,7 +352,7 @@ def test_finalized_inventory_sale_is_not_applied_twice():
         ].sold_stock
 
         processed_order.status = "FAILED"
-        processed_order.failure_step = FailureStep.FINALIZE_INVENTORY_SALE
+        processed_order.failure_step = OrderFailureStep.FINALIZE_INVENTORY_SALE
         processed_order.failure_reason = "Manual retry test"
         order_service.save_order(processed_order)
 
@@ -382,7 +385,7 @@ def test_sent_notification_is_not_sent_twice():
             retry_base_delay_seconds=0,
             retry_backoff_multiplier=2,
             retryable_failure_steps={
-                FailureStep.SEND_NOTIFICATION,
+                OrderFailureStep.SEND_NOTIFICATION,
             },
         )
 
@@ -408,7 +411,7 @@ def test_sent_notification_is_not_sent_twice():
         ]
 
         processed_order.status = "FAILED"
-        processed_order.failure_step = FailureStep.SEND_NOTIFICATION
+        processed_order.failure_step = OrderFailureStep.SEND_NOTIFICATION
         processed_order.failure_reason = "Manual retry test"
         order_service.save_order(processed_order)
 
@@ -442,7 +445,7 @@ def test_created_invoice_is_not_created_twice():
             retry_base_delay_seconds=0,
             retry_backoff_multiplier=2,
             retryable_failure_steps={
-                FailureStep.CREATE_INVOICE,
+                OrderFailureStep.CREATE_INVOICE,
             },
         )
 
@@ -464,7 +467,7 @@ def test_created_invoice_is_not_created_twice():
         invoice_after_first_run = invoices_after_first_run.root[invoice_id]
 
         processed_order.status = "FAILED"
-        processed_order.failure_step = FailureStep.CREATE_INVOICE
+        processed_order.failure_step = OrderFailureStep.CREATE_INVOICE
         processed_order.failure_reason = "Manual retry test"
         order_service.save_order(processed_order)
 

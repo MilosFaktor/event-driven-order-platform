@@ -1,7 +1,7 @@
 from app.core.config import Settings
 from app.core.logging_config import get_logger
 from app.exceptions import NotificationSendError, PaymentCaptureError
-from app.models.types import FailureStep
+from app.models.types import OrderFailureStep, OrderStatus
 from app.services.inventory_service import InventoryService
 from app.services.invoice_service import InvoiceService
 from app.services.notification_service import NotificationService
@@ -11,11 +11,11 @@ from app.services.payment_service import PaymentService
 logger = get_logger("order.pipeline")
 
 PIPELINE_STEPS = [
-    FailureStep.RESERVE_INVENTORY,
-    FailureStep.CAPTURE_PAYMENT,
-    FailureStep.FINALIZE_INVENTORY_SALE,
-    FailureStep.CREATE_INVOICE,
-    FailureStep.SEND_NOTIFICATION,
+    OrderFailureStep.RESERVE_INVENTORY,
+    OrderFailureStep.CAPTURE_PAYMENT,
+    OrderFailureStep.FINALIZE_INVENTORY_SALE,
+    OrderFailureStep.CREATE_INVOICE,
+    OrderFailureStep.SEND_NOTIFICATION,
 ]
 
 
@@ -46,7 +46,7 @@ class OrderPipelineService:
         )
 
     def fail_order(self, order, failure_step, failure_reason):
-        order.status = "FAILED"
+        order.status = OrderStatus.FAILED
         order.failure_step = failure_step
         order.failure_reason = failure_reason
         logger.warning(
@@ -80,7 +80,7 @@ class OrderPipelineService:
         if order.steps.reserve_inventory == "FAILED":
             self.fail_order(
                 order,
-                FailureStep.RESERVE_INVENTORY,
+                OrderFailureStep.RESERVE_INVENTORY,
                 order.failure_reason or "Inventory reservation failed",
             )
             self.order_service.save_order(order)
@@ -106,7 +106,7 @@ class OrderPipelineService:
         except PaymentCaptureError:
             logger.warning("payment_capture_failed order_id=%s", order_id)
             self.fail_order(
-                order, FailureStep.CAPTURE_PAYMENT, "Payment capture failed"
+                order, OrderFailureStep.CAPTURE_PAYMENT, "Payment capture failed"
             )
 
             if order.attempt_count == self.settings.max_processing_attempts:
@@ -135,7 +135,7 @@ class OrderPipelineService:
         except Exception:  # catches everything here for now
             self.fail_order(
                 order,
-                FailureStep.FINALIZE_INVENTORY_SALE,
+                OrderFailureStep.FINALIZE_INVENTORY_SALE,
                 "Inventory finalization failed",
             )
             self.order_service.save_order(order)
@@ -158,7 +158,7 @@ class OrderPipelineService:
             self.invoice_service.create_invoice(order)
         except Exception:  # catches everything here for now
             self.fail_order(
-                order, FailureStep.CREATE_INVOICE, "Invoice creation failed"
+                order, OrderFailureStep.CREATE_INVOICE, "Invoice creation failed"
             )
             self.order_service.save_order(order)
             self.order_service.log_order_state(order)
@@ -181,7 +181,7 @@ class OrderPipelineService:
 
         except NotificationSendError:
             self.fail_order(
-                order, FailureStep.SEND_NOTIFICATION, "Notification sending failed"
+                order, OrderFailureStep.SEND_NOTIFICATION, "Notification sending failed"
             )
 
             self.order_service.save_order(order)
@@ -196,7 +196,7 @@ class OrderPipelineService:
 
     def get_start_step(self, order):
         if (
-            order.status == "FAILED"
+            order.status == OrderStatus.FAILED
             and order.failure_step in self.settings.retryable_failure_steps
         ):
             return order.failure_step
@@ -210,11 +210,11 @@ class OrderPipelineService:
     def process_order(self, order_id):
 
         step_handlers = {
-            FailureStep.RESERVE_INVENTORY: self.reserve_inventory_step,
-            FailureStep.CAPTURE_PAYMENT: self.capture_payment_step,
-            FailureStep.FINALIZE_INVENTORY_SALE: self.finalize_inventory_sale_step,
-            FailureStep.CREATE_INVOICE: self.create_invoice_step,
-            FailureStep.SEND_NOTIFICATION: self.send_notification_step,
+            OrderFailureStep.RESERVE_INVENTORY: self.reserve_inventory_step,
+            OrderFailureStep.CAPTURE_PAYMENT: self.capture_payment_step,
+            OrderFailureStep.FINALIZE_INVENTORY_SALE: self.finalize_inventory_sale_step,
+            OrderFailureStep.CREATE_INVOICE: self.create_invoice_step,
+            OrderFailureStep.SEND_NOTIFICATION: self.send_notification_step,
         }
 
         logger.info("order_processing_pipeline_started order_id=%s", order_id)
@@ -247,21 +247,23 @@ class OrderPipelineService:
         start_step = self.get_start_step(order)
 
         order.attempt_count += 1
-        self.mark_order_status(order, "PROCESSING")
+        self.mark_order_status(order, OrderStatus.PROCESSING)
         self.order_service.save_order(order)
         self.order_service.log_order_state(order)
 
         for step in self.get_steps_from(start_step):
             order = step_handlers[step](order, order_id)
-            if order.status == "FAILED":
+            if order.status == OrderStatus.FAILED:
                 return order
 
         self.clear_active_failure(order)
 
-        self.mark_order_status(order, "COMPLETED")
+        self.mark_order_status(order, OrderStatus.COMPLETED)
         self.order_service.save_order(order)
         logger.info(
-            "order_processing_pipeline_finished order_id=%s status=COMPLETED", order_id
+            "order_processing_pipeline_finished order_id=%s status=%s",
+            order_id,
+            OrderStatus.COMPLETED,
         )
         self.order_service.log_order_state(order)
 

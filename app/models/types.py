@@ -4,12 +4,19 @@ from typing import Literal
 Currency = Literal["USD", "EUR"]
 
 
-class FailureStep(StrEnum):
+class OrderFailureStep(StrEnum):
     RESERVE_INVENTORY = "RESERVE_INVENTORY"
     CAPTURE_PAYMENT = "CAPTURE_PAYMENT"
     FINALIZE_INVENTORY_SALE = "FINALIZE_INVENTORY_SALE"
     CREATE_INVOICE = "CREATE_INVOICE"
     SEND_NOTIFICATION = "SEND_NOTIFICATION"
+
+
+class OrderStatus(StrEnum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 
 class WorkerProcessResultOutcome(StrEnum):

@@ -1,7 +1,7 @@
 from app.core.config import Settings
 from app.models.inventory import Inventory, InventoryItem
 from app.models.order import Order, OrderItem
-from app.models.types import FailureStep
+from app.models.types import OrderFailureStep, OrderStatus
 from app.services.inventory_service import InventoryService
 from app.services.order_service import OrderService
 from app.workflows.order_pipeline_service import OrderPipelineService
@@ -59,8 +59,8 @@ def test_inventory_reservation_failure_fails_order_without_running_later_steps()
         processed_order = pipeline.process_order(order_id)
 
         assert isinstance(processed_order, Order)
-        assert processed_order.status == "FAILED"
-        assert processed_order.failure_step == FailureStep.RESERVE_INVENTORY
+        assert processed_order.status == OrderStatus.FAILED
+        assert processed_order.failure_step == OrderFailureStep.RESERVE_INVENTORY
         assert processed_order.failure_reason == "Insufficient stock for Laptop"
         assert processed_order.steps.reserve_inventory == "FAILED"
         assert processed_order.steps.capture_payment == "PENDING"
@@ -123,8 +123,8 @@ def test_inventory_reservation_failure_does_not_partially_reserve_stock():
         processed_order = pipeline.process_order(order_id)
 
         assert isinstance(processed_order, Order)
-        assert processed_order.status == "FAILED"
-        assert processed_order.failure_step == FailureStep.RESERVE_INVENTORY
+        assert processed_order.status == OrderStatus.FAILED
+        assert processed_order.failure_step == OrderFailureStep.RESERVE_INVENTORY
         assert processed_order.failure_reason == "Insufficient stock for Mouse"
         assert processed_order.steps.reserve_inventory == "FAILED"
 

@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator
 
-from app.models.types import Currency, FailureStep
+from app.models.types import Currency, OrderFailureStep, OrderStatus
 
 
 class OrderItem(BaseModel):
@@ -42,13 +42,13 @@ class Order(BaseModel):
     customer_id: str
     items: list[OrderItem]
     currency: Currency = "EUR"
-    status: Literal["PENDING", "PROCESSING", "COMPLETED", "FAILED"] = "PENDING"
+    status: OrderStatus = OrderStatus.PENDING
     steps: OrderSteps
     failure_reason: str | None = None
-    failure_step: FailureStep | None = None
+    failure_step: OrderFailureStep | None = None
     attempt_count: int = 0
     last_error: str | None = None
-    last_failure_step: FailureStep | None = None
+    last_failure_step: OrderFailureStep | None = None
 
     @field_validator("items")
     @classmethod
