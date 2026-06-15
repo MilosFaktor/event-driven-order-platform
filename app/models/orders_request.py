@@ -1,6 +1,6 @@
-from typing import Literal
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.models.types import Currency
 
 
 class OrderItemRequest(BaseModel):
@@ -26,7 +26,7 @@ class CreateOrderRequest(BaseModel):
 
     customer_id: str
     items: list[OrderItemRequest]
-    currency: Literal["USD", "EUR"] = "EUR"
+    currency: Currency = Currency.EUR
 
     @field_validator("items")
     @classmethod

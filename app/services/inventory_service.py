@@ -1,6 +1,7 @@
 from app.core.logging_config import get_logger
 from app.models.inventory import Inventory
 from app.models.order import Order
+from app.models.types import InventoryReservationStatus, InventorySaleStatus
 from app.repositories.inventory_repository import InventoryRepository
 
 logger = get_logger("inventory.service")
@@ -20,7 +21,7 @@ class InventoryService:
     ) -> None:
         inventory.root[sku].available_stock -= quantity
         inventory.root[sku].reserved_stock += quantity
-        order.steps.reserve_inventory = "RESERVED"
+        order.steps.reserve_inventory = InventoryReservationStatus.RESERVED
         logger.debug(
             "inventory_item_reserved order_id=%s sku=%s quantity=%s available_stock=%s reserved_stock=%s",
             order.order_id,
@@ -34,7 +35,7 @@ class InventoryService:
         self, inventory: Inventory, order: Order, sku: str
     ) -> None:
         order.failure_reason = f"Insufficient stock for {inventory.root[sku].name}"
-        order.steps.reserve_inventory = "FAILED"
+        order.steps.reserve_inventory = InventoryReservationStatus.FAILED
 
     def reserve_inventory(self, order: Order) -> None:
         inventory = self.repo.list_inventory()
@@ -51,13 +52,13 @@ class InventoryService:
 
                 break
 
-        if order.steps.reserve_inventory != "FAILED":
+        if order.steps.reserve_inventory != InventoryReservationStatus.FAILED:
             for sku, quantity in items_to_reserve:
                 self.reserve_inventory_item(inventory, order, sku, quantity)
 
         self.repo.save_inventory(inventory)
 
-        if order.steps.reserve_inventory == "RESERVED":
+        if order.steps.reserve_inventory == InventoryReservationStatus.RESERVED:
             logger.info("inventory_reserved order_id=%s", order.order_id)
 
     def release_reserved_inventory(
@@ -84,7 +85,7 @@ class InventoryService:
 
         self.repo.save_inventory(inventory)
 
-        order.steps.reserve_inventory = "RELEASED"
+        order.steps.reserve_inventory = InventoryReservationStatus.RELEASED
         logger.info("inventory_release_finished order_id=%s", order.order_id)
 
     def mark_inventory_as_sold(
@@ -111,7 +112,7 @@ class InventoryService:
             quantity = item.quantity
             inventory = self.mark_inventory_as_sold(inventory, sku, quantity)
 
-        order.steps.finalize_inventory_sale = "FINALIZED"
+        order.steps.finalize_inventory_sale = InventorySaleStatus.FINALIZED
 
         self.repo.save_inventory(inventory)
         logger.info("inventory_sale_finalized order_id=%s", order.order_id)

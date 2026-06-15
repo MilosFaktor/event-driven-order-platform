@@ -1,7 +1,16 @@
 from app.core.config import Settings
 from app.models.inventory import Inventory, InventoryItem
 from app.models.order import Order, OrderItem
-from app.models.types import OrderFailureStep, OrderStatus
+from app.models.types import (
+    Currency,
+    InventoryReservationStatus,
+    InventorySaleStatus,
+    InvoiceCreationStatus,
+    NotificationSendStatus,
+    OrderFailureStep,
+    OrderStatus,
+    PaymentCaptureStatus,
+)
 from app.services.inventory_service import InventoryService
 from app.services.order_service import OrderService
 from app.workflows.order_pipeline_service import OrderPipelineService
@@ -53,7 +62,7 @@ def test_inventory_reservation_failure_fails_order_without_running_later_steps()
                 OrderItem(sku="SKU-001", quantity=20),
                 OrderItem(sku="SKU-002", quantity=10),
             ],
-            currency="EUR",
+            currency=Currency.EUR,
         )
 
         processed_order = pipeline.process_order(order_id)
@@ -62,11 +71,15 @@ def test_inventory_reservation_failure_fails_order_without_running_later_steps()
         assert processed_order.status == OrderStatus.FAILED
         assert processed_order.failure_step == OrderFailureStep.RESERVE_INVENTORY
         assert processed_order.failure_reason == "Insufficient stock for Laptop"
-        assert processed_order.steps.reserve_inventory == "FAILED"
-        assert processed_order.steps.capture_payment == "PENDING"
-        assert processed_order.steps.finalize_inventory_sale == "PENDING"
-        assert processed_order.steps.create_invoice == "PENDING"
-        assert processed_order.steps.send_notification == "PENDING"
+        assert (
+            processed_order.steps.reserve_inventory == InventoryReservationStatus.FAILED
+        )
+        assert processed_order.steps.capture_payment == PaymentCaptureStatus.PENDING
+        assert (
+            processed_order.steps.finalize_inventory_sale == InventorySaleStatus.PENDING
+        )
+        assert processed_order.steps.create_invoice == InvoiceCreationStatus.PENDING
+        assert processed_order.steps.send_notification == NotificationSendStatus.PENDING
 
     finally:
         silent_storage_reset()
@@ -117,7 +130,7 @@ def test_inventory_reservation_failure_does_not_partially_reserve_stock():
                 OrderItem(sku="SKU-001", quantity=5),
                 OrderItem(sku="SKU-002", quantity=20),
             ],
-            currency="EUR",
+            currency=Currency.EUR,
         )
 
         processed_order = pipeline.process_order(order_id)
@@ -126,7 +139,9 @@ def test_inventory_reservation_failure_does_not_partially_reserve_stock():
         assert processed_order.status == OrderStatus.FAILED
         assert processed_order.failure_step == OrderFailureStep.RESERVE_INVENTORY
         assert processed_order.failure_reason == "Insufficient stock for Mouse"
-        assert processed_order.steps.reserve_inventory == "FAILED"
+        assert (
+            processed_order.steps.reserve_inventory == InventoryReservationStatus.FAILED
+        )
 
         assert inventory_service.list_inventory().model_dump() == {
             "SKU-001": {

@@ -1,7 +1,9 @@
 from enum import StrEnum
-from typing import Literal
 
-Currency = Literal["USD", "EUR"]
+
+class Currency(StrEnum):
+    USD = "USD"
+    EUR = "EUR"
 
 
 class OrderFailureStep(StrEnum):
@@ -16,6 +18,37 @@ class OrderStatus(StrEnum):
     PENDING = "PENDING"
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class InventoryReservationStatus(StrEnum):
+    PENDING = "PENDING"
+    RESERVED = "RESERVED"
+    RELEASED = "RELEASED"
+    FAILED = "FAILED"
+
+
+class PaymentCaptureStatus(StrEnum):
+    PENDING = "PENDING"
+    CAPTURED = "CAPTURED"
+    FAILED = "FAILED"
+
+
+class InventorySaleStatus(StrEnum):
+    PENDING = "PENDING"
+    FINALIZED = "FINALIZED"
+    FAILED = "FAILED"
+
+
+class InvoiceCreationStatus(StrEnum):
+    PENDING = "PENDING"
+    CREATED = "CREATED"
+    FAILED = "FAILED"
+
+
+class NotificationSendStatus(StrEnum):
+    PENDING = "PENDING"
+    SENT = "SENT"
     FAILED = "FAILED"
 
 

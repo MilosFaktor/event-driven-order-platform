@@ -1,6 +1,7 @@
 from app.core.logging_config import get_logger
 from app.exceptions import PaymentCaptureError
 from app.models.order import Order
+from app.models.types import PaymentCaptureStatus
 
 logger = get_logger("payment.service")
 
@@ -17,6 +18,6 @@ class PaymentService:
 
     def failed_capture_payment_mock(self, order: Order) -> None:
         # payment mock
-        order.steps.capture_payment = "FAILED"
+        order.steps.capture_payment = PaymentCaptureStatus.FAILED
         logger.info("payment_capture_failed order_id=%s", order.order_id)
         raise PaymentCaptureError(f"Payment capture failed for order {order.order_id}")
