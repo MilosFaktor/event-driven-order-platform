@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models.types import Currency
+from app.models.enums import Currency
 
 
 class OrderItemRequest(BaseModel):

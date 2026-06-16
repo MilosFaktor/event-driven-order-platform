@@ -1,11 +1,11 @@
 from app.core.config import Settings, settings
-from app.models.order import Order
-from app.models.types import (
+from app.models.enums import (
     InventoryReservationStatus,
     OrderFailureStep,
     OrderStatus,
     WorkerProcessResultOutcome,
 )
+from app.models.order import Order
 from app.services.order_service import OrderService
 from app.services.queue_service import ProcessingQueueService
 from app.workflows.order_pipeline_service import OrderPipelineService

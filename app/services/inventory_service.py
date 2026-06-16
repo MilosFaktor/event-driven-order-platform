@@ -1,7 +1,7 @@
 from app.core.logging_config import get_logger
+from app.models.enums import InventoryReservationStatus, InventorySaleStatus
 from app.models.inventory import Inventory
 from app.models.order import Order
-from app.models.types import InventoryReservationStatus, InventorySaleStatus
 from app.repositories.inventory_repository import InventoryRepository
 
 logger = get_logger("inventory.service")

@@ -3,8 +3,8 @@ from dataclasses import dataclass
 
 from app.core.config import Settings
 from app.core.logging_config import get_logger
+from app.models.enums import OrderStatus, WorkerProcessResultOutcome
 from app.models.order import Order
-from app.models.types import OrderStatus, WorkerProcessResultOutcome
 from app.workflows.protocols import OrderPipelineProtocol, QueueServiceProtocol
 
 logger = get_logger("worker.service")

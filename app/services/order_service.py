@@ -1,8 +1,8 @@
 from uuid import uuid4
 
 from app.core.logging_config import get_logger
+from app.models.enums import Currency, OrderStatus
 from app.models.order import Order, OrderItem, Orders, OrderSteps
-from app.models.types import Currency, OrderStatus
 from app.repositories.order_repository import OrderRepository
 
 logger = get_logger("order.service")

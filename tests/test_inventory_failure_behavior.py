@@ -1,7 +1,5 @@
 from app.core.config import Settings
-from app.models.inventory import Inventory, InventoryItem
-from app.models.order import Order, OrderItem
-from app.models.types import (
+from app.models.enums import (
     Currency,
     InventoryReservationStatus,
     InventorySaleStatus,
@@ -11,6 +9,8 @@ from app.models.types import (
     OrderStatus,
     PaymentCaptureStatus,
 )
+from app.models.inventory import Inventory, InventoryItem
+from app.models.order import Order, OrderItem
 from app.services.inventory_service import InventoryService
 from app.services.order_service import OrderService
 from app.workflows.order_pipeline_service import OrderPipelineService

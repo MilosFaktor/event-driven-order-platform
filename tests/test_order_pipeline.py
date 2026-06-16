@@ -1,8 +1,6 @@
 from app.core.config import Settings
 from app.exceptions import NotificationSendError, PaymentCaptureError
-from app.models.order import Order, OrderItem
-from app.models.orders_request import CreateOrderRequest, OrderItemRequest
-from app.models.types import (
+from app.models.enums import (
     InventoryReservationStatus,
     InventorySaleStatus,
     InvoiceCreationStatus,
@@ -12,6 +10,8 @@ from app.models.types import (
     PaymentCaptureStatus,
     WorkerProcessResultOutcome,
 )
+from app.models.order import Order, OrderItem
+from app.models.orders_request import CreateOrderRequest, OrderItemRequest
 from app.services.notification_service import NotificationService
 from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService

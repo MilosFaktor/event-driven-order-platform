@@ -7,9 +7,9 @@ The production app should not import from this file.
 
 from app.core.config import Settings
 from app.core.logging_config import get_logger
+from app.models.enums import Currency, OrderFailureStep, OrderStatus
 from app.models.order import OrderItem
 from app.models.orders_request import CreateOrderRequest, OrderItemRequest
-from app.models.types import OrderFailureStep, OrderStatus
 from app.services.order_service import OrderService
 from app.workflows.order_pipeline_service import OrderPipelineService
 from scripts.reset_json_data import storage_reset
@@ -116,7 +116,7 @@ def run_resumable_order_pipeline():
                 quantity=1,
             ),
         ],
-        currency="EUR",
+        currency=Currency.EUR,
     )
 
     storage_reset()

@@ -1,7 +1,7 @@
 from app.core.logging_config import get_logger
 from app.exceptions import PaymentCaptureError
+from app.models.enums import PaymentCaptureStatus
 from app.models.order import Order
-from app.models.types import PaymentCaptureStatus
 
 logger = get_logger("payment.service")
 

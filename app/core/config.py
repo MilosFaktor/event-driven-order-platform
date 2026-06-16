@@ -2,7 +2,7 @@ import os
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.models.types import OrderFailureStep
+from app.models.enums import OrderFailureStep
 
 MODE = os.getenv("MODE", "example")
 

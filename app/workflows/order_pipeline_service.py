@@ -1,7 +1,7 @@
 from app.core.config import Settings
 from app.core.logging_config import get_logger
 from app.exceptions import NotificationSendError, PaymentCaptureError
-from app.models.types import OrderFailureStep, OrderStatus
+from app.models.enums import OrderFailureStep, OrderStatus
 from app.services.inventory_service import InventoryService
 from app.services.invoice_service import InvoiceService
 from app.services.notification_service import NotificationService

@@ -1,8 +1,8 @@
 import contextlib
 import io
 
+from app.models.enums import Currency
 from app.models.order import OrderItem
-from app.models.types import Currency
 from scripts.reset_json_data import storage_reset
 
 

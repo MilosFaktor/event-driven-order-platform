@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator
 
-from app.models.types import (
+from app.models.enums import (
     Currency,
     InventoryReservationStatus,
     InventorySaleStatus,

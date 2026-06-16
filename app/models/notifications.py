@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator
 
-from app.models.types import NotificationSendStatus
+from app.models.enums import NotificationSendStatus
 
 
 class Notification(BaseModel):

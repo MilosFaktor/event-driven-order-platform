@@ -7,7 +7,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.models.types import Currency, InvoiceCreationStatus
+from app.models.enums import Currency, InvoiceCreationStatus
 
 
 class InvoiceItem(BaseModel):

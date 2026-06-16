@@ -1,8 +1,8 @@
 from app.core.logging_config import get_logger
 from app.exceptions import NotificationSendError
+from app.models.enums import NotificationSendStatus
 from app.models.notifications import Notification, Notifications
 from app.models.order import Order
-from app.models.types import NotificationSendStatus
 from app.repositories.notification_repository import NotificationRepository
 
 logger = get_logger("notification.service")
@@ -40,7 +40,7 @@ class NotificationService:
             customer_id=order.customer_id,
             channel="email",
             type="ORDER_CONFIRMED",
-            status="SENT",
+            status=NotificationSendStatus.SENT,
             message=f"Your order {order.order_id} has been confirmed.",
         )
 
