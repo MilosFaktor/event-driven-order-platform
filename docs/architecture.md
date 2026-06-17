@@ -36,9 +36,10 @@ Client
 
 | Area | Current responsibility |
 | --- | --- |
-| API | Accept HTTP requests, validate input, enforce idempotency, enqueue work |
-| Worker | Poll/dequeue work and trigger one processing attempt |
-| Pipeline | Coordinate business steps for an order |
+| API | Accept HTTP requests, validate input, translate workflow/service results into HTTP responses |
+| Workflows | Coordinate use cases such as order creation, worker decisions, and order processing |
+| Worker | Poll/dequeue work and trigger processing through workflow code |
+| Pipeline | Process one order attempt and coordinate business steps |
 | Services | Own focused business behavior such as inventory, payment, invoices, notifications |
 | Repository | Provide domain data access behind service/pipeline code |
 | Adapter | Hide physical storage details and serialization |
@@ -58,21 +59,20 @@ If the two disagree, storage is the current source of truth.
 
 ## Current Intentional Simplicity
 
-The project is currently finalizing:
+The project has established:
 
 - repository and JSON adapter boundaries for the current JSON-backed domains
 - Pydantic objects at storage and service boundaries
 - workflow classes for worker and order-processing orchestration
 - lightweight dependency wiring for application entrypoints
 - typed service, repository, and model contracts
+- retry/backoff behavior for retryable payment and notification failures
+- pipeline checkpoint guards for already completed side-effect steps
+- behavior-focused tests grouped by purpose
 
-The project does not yet have:
-
-- retry/backoff
-- DLQ behavior
-- AWS infrastructure
-
-Those are planned later, after the local model is understandable.
+The project does not yet have AWS infrastructure. Local DLQ simulation is also
+intentionally skipped for now because SQS redrive policy should own DLQ movement
+later.
 
 ## Repository / Adapter Direction
 
@@ -113,8 +113,8 @@ contracts
 -> repository / adapter boundary
 -> controlled workflow failure handling
 -> retry / backoff
--> DLQ
 -> behavior-focused tests
+-> cleanup / layer responsibility documentation
 -> AWS infrastructure
 ```
 
@@ -129,3 +129,4 @@ For detailed concepts, see:
 - `docs/concepts/configuration.md`
 - `docs/concepts/failure-handling.md`
 - `docs/concepts/repository-adapter.md`
+- `docs/concepts/layer-responsibilities.md`

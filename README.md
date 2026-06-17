@@ -18,9 +18,9 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current completed version: `v0.7.0`
+Current completed version: `v0.8.4`
 
-Next planned work: create-order workflow cleanup and thin API boundary.
+Next planned work: continued v0.8.x cleanup, including dependency wiring and observability polish.
 
 The current local version includes:
 
@@ -55,9 +55,14 @@ The current local version includes:
 - pipeline checkpoint guards that skip already completed side-effect steps
 - tests proving inventory finalization, invoice creation, and notification sending are not applied twice
 - behavior-focused pytest coverage for create-order API behavior, worker decisions, inventory reservation failures, retry behavior, and repeated-step guards
+- organized test suite under `tests/behavior`, `tests/unit`, and `tests/integration`
+- split order pipeline tests into happy path, retry behavior, and idempotency guard modules
 - create-order API tests for request validation, idempotency behavior, saved orders, and queue enqueueing
 - worker service tests for empty queues, stale queue items, and non-retryable failed orders
 - inventory failure tests proving reservation failures stop later pipeline steps and do not partially reserve stock
+- create-order workflow boundary with an internal result dataclass and API response model
+- worker processing result object for explicit worker outcomes
+- enum-backed order, step, invoice, notification, currency, and worker result state
 - narrow WorkerService dependency protocols for queue-like and pipeline-like behavior
 - stale queued order handling for missing order IDs
 - order processing pipeline:
@@ -118,6 +123,18 @@ invoice.service       -> invoice records through InvoiceRepository
 notification.service  -> notification records through NotificationRepository
 ```
 
+Layer responsibility direction:
+
+```text
+API        -> transport, HTTP status, response models
+workflows  -> use-case orchestration and internal results
+services   -> focused business actions
+repositories -> domain data access interface
+adapters   -> concrete JSON persistence
+models     -> structured data, validation, enums
+tests      -> unit, behavior, and future integration groups
+```
+
 Repository/adapter direction:
 
 ```text
@@ -164,6 +181,7 @@ Architecture and concept docs:
 - [Configuration](docs/concepts/configuration.md)
 - [Failure handling](docs/concepts/failure-handling.md)
 - [Repository / adapter](docs/concepts/repository-adapter.md)
+- [Layer responsibilities](docs/concepts/layer-responsibilities.md)
 
 ## Screenshots
 
