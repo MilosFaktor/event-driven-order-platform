@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator
 
+from app.models.enums import NotificationSendStatus
+
 
 class Notification(BaseModel):
     model_config = ConfigDict(
@@ -13,7 +15,7 @@ class Notification(BaseModel):
     customer_id: str
     channel: Literal["email"] = "email"
     type: str
-    status: Literal["PENDING", "SENT", "FAILED"] = "PENDING"
+    status: NotificationSendStatus = NotificationSendStatus.PENDING
     message: str = Field(default="", max_length=1000)
 
     @field_validator("notification_id")

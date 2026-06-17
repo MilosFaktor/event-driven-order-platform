@@ -1,5 +1,6 @@
 from app.core.logging_config import get_logger
 from app.exceptions import NotificationSendError
+from app.models.enums import NotificationSendStatus
 from app.models.notifications import Notification, Notifications
 from app.models.order import Order
 from app.repositories.notification_repository import NotificationRepository
@@ -20,7 +21,7 @@ class NotificationService:
 
     def failed_send_notification_mock(self, order: Order) -> None:
         # notification mock
-        order.steps.send_notification = "FAILED"
+        order.steps.send_notification = NotificationSendStatus.FAILED
         logger.info(
             "notification_send_failed order_id=%s",
             order.order_id,
@@ -39,7 +40,7 @@ class NotificationService:
             customer_id=order.customer_id,
             channel="email",
             type="ORDER_CONFIRMED",
-            status="SENT",
+            status=NotificationSendStatus.SENT,
             message=f"Your order {order.order_id} has been confirmed.",
         )
 

@@ -1,8 +1,15 @@
-from typing import Literal
-
 from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator
 
-from app.models.types import Currency, FailureStep
+from app.models.enums import (
+    Currency,
+    InventoryReservationStatus,
+    InventorySaleStatus,
+    InvoiceCreationStatus,
+    NotificationSendStatus,
+    OrderFailureStep,
+    OrderStatus,
+    PaymentCaptureStatus,
+)
 
 
 class OrderItem(BaseModel):
@@ -26,11 +33,11 @@ class OrderSteps(BaseModel):
         extra="forbid", validate_assignment=True, str_strip_whitespace=True
     )
 
-    reserve_inventory: Literal["PENDING", "RESERVED", "RELEASED", "FAILED"] = "PENDING"
-    capture_payment: Literal["PENDING", "CAPTURED", "FAILED"] = "PENDING"
-    finalize_inventory_sale: Literal["PENDING", "FINALIZED", "FAILED"] = "PENDING"
-    create_invoice: Literal["PENDING", "CREATED", "FAILED"] = "PENDING"
-    send_notification: Literal["PENDING", "SENT", "FAILED"] = "PENDING"
+    reserve_inventory: InventoryReservationStatus = InventoryReservationStatus.PENDING
+    capture_payment: PaymentCaptureStatus = PaymentCaptureStatus.PENDING
+    finalize_inventory_sale: InventorySaleStatus = InventorySaleStatus.PENDING
+    create_invoice: InvoiceCreationStatus = InvoiceCreationStatus.PENDING
+    send_notification: NotificationSendStatus = NotificationSendStatus.PENDING
 
 
 class Order(BaseModel):
@@ -41,14 +48,14 @@ class Order(BaseModel):
     order_id: str
     customer_id: str
     items: list[OrderItem]
-    currency: Currency = "EUR"
-    status: Literal["PENDING", "PROCESSING", "COMPLETED", "FAILED"] = "PENDING"
+    currency: Currency = Currency.EUR
+    status: OrderStatus = OrderStatus.PENDING
     steps: OrderSteps
     failure_reason: str | None = None
-    failure_step: FailureStep | None = None
+    failure_step: OrderFailureStep | None = None
     attempt_count: int = 0
     last_error: str | None = None
-    last_failure_step: FailureStep | None = None
+    last_failure_step: OrderFailureStep | None = None
 
     @field_validator("items")
     @classmethod

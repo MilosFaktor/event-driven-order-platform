@@ -1,6 +1,7 @@
 import contextlib
 import io
 
+from app.models.enums import Currency
 from app.models.order import OrderItem
 from scripts.reset_json_data import storage_reset
 
@@ -18,5 +19,5 @@ def create_default_test_order(order_service, order_id):
             OrderItem(sku="SKU-001", quantity=2),
             OrderItem(sku="SKU-002", quantity=1),
         ],
-        currency="EUR",
+        currency=Currency.EUR,
     )

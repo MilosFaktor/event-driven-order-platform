@@ -3,9 +3,9 @@ from fastapi import FastAPI, Header, HTTPException, Response
 from app.core.dependencies import app_dependencies as deps
 from app.core.logging_config import configure_logging_api, get_logger
 from app.exceptions import InconsistentIdempotencyState
+from app.models.enums import WorkerProcessResultOutcome
 from app.models.order import Order
 from app.models.orders_request import CreateOrderRequest, CreateOrderResponse
-from app.models.types import WorkerProcessResultOutcome
 from app.workflows.create_order_workflow import CreateOrderResult
 
 app = FastAPI()

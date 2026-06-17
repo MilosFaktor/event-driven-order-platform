@@ -1,5 +1,3 @@
-from typing import Literal
-
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -8,6 +6,8 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
+from app.models.enums import Currency, InvoiceCreationStatus
 
 
 class InvoiceItem(BaseModel):
@@ -44,8 +44,8 @@ class Invoice(BaseModel):
     order_id: str
     customer_id: str
     items: list[InvoiceItem]
-    currency: Literal["USD", "EUR"] = "EUR"
-    status: Literal["PENDING", "CREATED", "FAILED"] = "PENDING"
+    currency: Currency = Currency.EUR
+    status: InvoiceCreationStatus = InvoiceCreationStatus.PENDING
 
     @field_validator("items")
     @classmethod

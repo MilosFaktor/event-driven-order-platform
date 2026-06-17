@@ -1,8 +1,8 @@
 from uuid import uuid4
 
 from app.core.logging_config import get_logger
+from app.models.enums import Currency, OrderStatus
 from app.models.order import Order, OrderItem, Orders, OrderSteps
-from app.models.types import Currency
 from app.repositories.order_repository import OrderRepository
 
 logger = get_logger("order.service")
@@ -19,7 +19,7 @@ def build_pending_order(
         customer_id=customer_id,
         items=items,
         currency=currency,
-        status="PENDING",
+        status=OrderStatus.PENDING,
         steps=OrderSteps(),
         failure_reason=None,
         failure_step=None,
@@ -55,13 +55,13 @@ class OrderService:
                 return order_id
 
     def order_is_completed(self, order: Order) -> bool:
-        return order.status == "COMPLETED"
+        return order.status == OrderStatus.COMPLETED
 
     def order_failed(self, order: Order) -> bool:
-        return order.status == "FAILED"
+        return order.status == OrderStatus.FAILED
 
     def order_being_processed(self, order: Order) -> bool:
-        return order.status == "PROCESSING"
+        return order.status == OrderStatus.PROCESSING
 
     def create_order(
         self,
@@ -82,9 +82,10 @@ class OrderService:
         self.repo.save_order(order)
 
         logger.info(
-            "order_created order_id=%s customer_id=%s status=PENDING",
+            "order_created order_id=%s customer_id=%s status=%s",
             order_id,
             customer_id,
+            OrderStatus.PENDING,
         )
 
     def list_orders(self) -> Orders:
