@@ -677,11 +677,103 @@ Use shared helpers only for boring repeated setup.
 Keep behavior-specific setup inline when it explains the scenario.
 ```
 
+## v0.8.0 - Create Order Workflow Cleanup
+
+Goal: make the create-order API route a thinner HTTP boundary.
+
+Implemented in v0.8.0:
+
+```text
+- introduced CreateOrderWorkflow
+- moved idempotency lookup, order creation, idempotency save, and queue enqueue into the workflow
+- added CreateOrderResult dataclass for internal workflow output
+- added CreateOrderResponse Pydantic model for API output
+- kept FastAPI HTTP concerns inside the API layer
+- kept create-order behavior tests passing
+```
+
+Why it mattered:
+
+```text
+The API now translates HTTP.
+The workflow coordinates the use case.
+```
+
+## v0.8.1 - Worker Process Result Cleanup
+
+Goal: replace loose worker return values with an explicit result object.
+
+Implemented in v0.8.1:
+
+```text
+- added WorkerProcessResult
+- added WorkerProcessResultOutcome
+- replaced mixed WorkerService returns such as None, string sentinels, and raw orders
+- manual worker API now translates worker outcomes explicitly
+- worker behavior tests assert structured outcomes
+```
+
+Why it mattered:
+
+WorkerService now returns one consistent shape. Callers can first inspect the
+outcome and then decide how to represent it.
+
+## v0.8.2 - Order Model Hardening
+
+Goal: reduce stringly typed model state.
+
+Implemented in v0.8.2:
+
+```text
+- introduced app/models/enums.py
+- added Currency enum
+- added OrderStatus enum
+- renamed failure-step direction to OrderFailureStep
+- added step-specific status enums
+- added enum-backed invoice and notification statuses
+- updated internal services and tests to use enum values
+- kept API request/response tests string-based at the boundary
+```
+
+Why it mattered:
+
+Internal model state became harder to accidentally misspell or assign
+incorrectly while preserving normal JSON API behavior.
+
+## v0.8.3 - Test Organization Cleanup
+
+Goal: make the growing test suite easier to scan and reason about.
+
+Implemented in v0.8.3:
+
+```text
+- moved API, worker, pipeline, and inventory behavior tests under tests/behavior
+- split order pipeline tests into happy path, retry behavior, and idempotency guard modules
+- moved small enum and retry policy checks under tests/unit
+- reserved tests/integration for future cross-layer local JSON flows
+- kept the full pytest suite passing
+```
+
+Current test grouping:
+
+```text
+tests/unit       -> small isolated checks
+tests/behavior   -> API and business behavior
+tests/integration -> future cross-layer local storage flows
+```
+
+Why it mattered:
+
+The project now has enough tests that file organization affects understanding.
+The split is based on cognitive load, not abstract test taxonomy.
+
 ## Next Versions
 
 Current and planned next steps:
 
-- `v0.8.0` - create-order workflow cleanup / thin API boundary
-- responsibility and layer documentation polish
+- `v0.8.4` - layer responsibility documentation
+- dependency wiring cleanup
+- logger naming / observability polish
+- public README/docs polish
 - future AWS SQS / DLQ integration
 - `v1.0.0` - local Phase 1 MVP complete
