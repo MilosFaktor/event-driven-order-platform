@@ -1,4 +1,5 @@
 from app.core.config import Settings
+from app.core.dependencies import AppDependencies
 from app.models.enums import (
     InventorySaleStatus,
     InvoiceCreationStatus,
@@ -7,8 +8,6 @@ from app.models.enums import (
     OrderStatus,
 )
 from app.models.order import Order
-from app.services.order_service import OrderService
-from app.workflows.order_pipeline_service import OrderPipelineService
 from tests.helpers import create_default_test_order, silent_storage_reset
 
 
@@ -27,10 +26,12 @@ def test_finalized_inventory_sale_is_not_applied_twice():
 
         order_id = "ord_retry1"
 
-        order_service = OrderService()
+        deps = AppDependencies(settings=settings)
+
+        order_service = deps.order_service()
         create_default_test_order(order_service, order_id)
 
-        pipeline = OrderPipelineService(settings=settings)
+        pipeline = deps.order_pipeline_service()
 
         processed_order = pipeline.process_order(order_id)
 
@@ -92,10 +93,12 @@ def test_sent_notification_is_not_sent_twice():
 
         order_id = "ord_retry1"
 
-        order_service = OrderService()
+        deps = AppDependencies(settings=settings)
+
+        order_service = deps.order_service()
         create_default_test_order(order_service, order_id)
 
-        pipeline = OrderPipelineService(settings=settings)
+        pipeline = deps.order_pipeline_service()
 
         processed_order = pipeline.process_order(order_id)
 
@@ -152,10 +155,12 @@ def test_created_invoice_is_not_created_twice():
 
         order_id = "ord_retry1"
 
-        order_service = OrderService()
+        deps = AppDependencies(settings=settings)
+
+        order_service = deps.order_service()
         create_default_test_order(order_service, order_id)
 
-        pipeline = OrderPipelineService(settings=settings)
+        pipeline = deps.order_pipeline_service()
 
         processed_order = pipeline.process_order(order_id)
 

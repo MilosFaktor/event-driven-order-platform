@@ -1,4 +1,5 @@
 from app.core.config import Settings
+from app.core.dependencies import AppDependencies
 from app.exceptions import NotificationSendError, PaymentCaptureError
 from app.models.enums import (
     InventoryReservationStatus,
@@ -10,7 +11,6 @@ from app.models.enums import (
 )
 from app.models.order import Order
 from app.services.notification_service import NotificationService
-from app.services.order_service import OrderService
 from app.services.payment_service import PaymentService
 from app.workflows.order_pipeline_service import OrderPipelineService
 from app.workflows.worker_service import WorkerProcessResult, WorkerService
@@ -52,12 +52,18 @@ def test_payment_failure_retries_and_releases_inventory():
 
         order_id = "ord_retry1"
 
-        order_service = OrderService()
+        deps = AppDependencies(settings=settings)
+
+        order_service = deps.order_service()
         create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(
             settings=settings,
+            order_service=deps.order_service(),
+            inventory_service=deps.inventory_service(),
             payment_service=AlwaysFailPaymentService(),
+            invoice_service=deps.invoice_service(),
+            notification_service=deps.notification_service(),
         )
 
         worker = WorkerService(
@@ -110,11 +116,17 @@ def test_notification_failure_retries():
 
         order_id = "ord_retry1"
 
-        order_service = OrderService()
+        deps = AppDependencies(settings=settings)
+
+        order_service = deps.order_service()
         create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(
             settings=settings,
+            order_service=deps.order_service(),
+            inventory_service=deps.inventory_service(),
+            payment_service=deps.payment_service(),
+            invoice_service=deps.invoice_service(),
             notification_service=AlwaysFailNotificationService(),
         )
 
@@ -171,12 +183,18 @@ def test_payment_failure_then_retry_success_completes_order():
 
         order_id = "ord_retry1"
 
-        order_service = OrderService()
+        deps = AppDependencies(settings=settings)
+
+        order_service = deps.order_service()
         create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(
             settings=settings,
+            order_service=deps.order_service(),
+            inventory_service=deps.inventory_service(),
             payment_service=FailOncePaymentService(),
+            invoice_service=deps.invoice_service(),
+            notification_service=deps.notification_service(),
         )
 
         worker = WorkerService(
@@ -237,11 +255,17 @@ def test_notification_failure_then_retry_success_completes_order():
 
         order_id = "ord_retry1"
 
-        order_service = OrderService()
+        deps = AppDependencies(settings=settings)
+
+        order_service = deps.order_service()
         create_default_test_order(order_service, order_id)
 
         pipeline = OrderPipelineService(
             settings=settings,
+            order_service=deps.order_service(),
+            inventory_service=deps.inventory_service(),
+            payment_service=deps.payment_service(),
+            invoice_service=deps.invoice_service(),
             notification_service=FailOnceNotificationService(),
         )
 
