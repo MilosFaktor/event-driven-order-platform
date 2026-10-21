@@ -64,7 +64,7 @@ The project has established:
 - repository and JSON adapter boundaries for the current JSON-backed domains
 - Pydantic objects at storage and service boundaries
 - workflow classes for worker and order-processing orchestration
-- lightweight dependency wiring for application entrypoints
+- entrypoint-owned dependency containers that inject settings and workflow collaborators
 - typed service, repository, and model contracts
 - retry/backoff behavior for retryable payment and notification failures
 - pipeline checkpoint guards for already completed side-effect steps

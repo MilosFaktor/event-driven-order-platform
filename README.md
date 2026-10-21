@@ -18,9 +18,9 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current completed version: `v0.8.4`
+Current completed version: `v0.8.5`
 
-Next planned work: continued v0.8.x cleanup, including dependency wiring and observability polish.
+Next planned work: `v0.8.6` logger naming and observability polish.
 
 The current local version includes:
 
@@ -40,7 +40,8 @@ The current local version includes:
 - validation at JSON storage boundaries for orders, inventory, invoices, notifications, idempotency keys, and the processing queue
 - repository/adapter boundaries for orders, inventory, processing queue, idempotency keys, invoices, and notifications
 - JSON adapters that own storage serialization and Pydantic validation
-- lightweight dependency container for top-level service wiring
+- entrypoint-owned dependency containers for API and worker runtime wiring
+- explicit constructor dependencies for create-order and order-pipeline workflows
 - typed service/repository/model boundaries for the current local flow
 - workflow classes for worker and order-processing orchestration
 - explicit workflow failure state with `failure_step` and `failure_reason`
