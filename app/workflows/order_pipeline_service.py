@@ -23,19 +23,18 @@ class OrderPipelineService:
     def __init__(
         self,
         settings: Settings,
-        order_service: OrderService | None = None,
-        inventory_service: InventoryService | None = None,
-        payment_service: PaymentService | None = None,
-        invoice_service: InvoiceService | None = None,
-        notification_service: NotificationService | None = None,
+        order_service: OrderService,
+        inventory_service: InventoryService,
+        payment_service: PaymentService,
+        invoice_service: InvoiceService,
+        notification_service: NotificationService,
     ):
         self.settings = settings
-
-        self.order_service = order_service or OrderService()
-        self.inventory_service = inventory_service or InventoryService()
-        self.payment_service = payment_service or PaymentService()
-        self.invoice_service = invoice_service or InvoiceService()
-        self.notification_service = notification_service or NotificationService()
+        self.order_service = order_service
+        self.inventory_service = inventory_service
+        self.payment_service = payment_service
+        self.invoice_service = invoice_service
+        self.notification_service = notification_service
 
     def mark_order_status(self, order, status):
         order.status = status

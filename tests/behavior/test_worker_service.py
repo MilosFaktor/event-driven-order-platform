@@ -1,4 +1,5 @@
 from app.core.config import Settings, settings
+from app.core.dependencies import AppDependencies
 from app.models.enums import (
     InventoryReservationStatus,
     OrderFailureStep,
@@ -6,9 +7,6 @@ from app.models.enums import (
     WorkerProcessResultOutcome,
 )
 from app.models.order import Order
-from app.services.order_service import OrderService
-from app.services.queue_service import ProcessingQueueService
-from app.workflows.order_pipeline_service import OrderPipelineService
 from app.workflows.worker_service import WorkerProcessResult, WorkerService
 from tests.helpers import create_default_test_order, silent_storage_reset
 
@@ -17,15 +15,12 @@ def test_empty_queue_returns_no_work():
     silent_storage_reset()
 
     try:
-        queue_service = ProcessingQueueService()
+        deps = AppDependencies(settings=settings)
+        queue_service = deps.queue_service()
 
         assert queue_service.get_first_queue_item() is None
 
-        worker = WorkerService(
-            settings=settings,
-            queue_service=queue_service,
-            order_pipeline_service=OrderPipelineService(settings=settings),
-        )
+        worker = deps.worker_service()
         result = worker.process_next_order()
 
         assert isinstance(result, WorkerProcessResult)
@@ -40,16 +35,13 @@ def test_stale_queue_item_is_discarded():
     silent_storage_reset()
 
     try:
-        queue_service = ProcessingQueueService()
+        deps = AppDependencies(settings=settings)
+        queue_service = deps.queue_service()
         queue_service.enqueue_order("ord_missing")
 
         assert queue_service.list_processing_queue().root == ["ord_missing"]
 
-        worker = WorkerService(
-            settings=settings,
-            queue_service=queue_service,
-            order_pipeline_service=OrderPipelineService(settings=settings),
-        )
+        worker = deps.worker_service()
         result = worker.process_next_order()
 
         assert isinstance(result, WorkerProcessResult)
@@ -68,11 +60,10 @@ def test_non_retryable_failed_order_dequeues_and_stops():
         test_settings = Settings(
             retryable_failure_steps={OrderFailureStep.CAPTURE_PAYMENT}
         )
-        queue_service = ProcessingQueueService()
-        order_service = OrderService()
-        order_pipeline_service = OrderPipelineService(
-            settings=test_settings, order_service=order_service
-        )
+        deps = AppDependencies(settings=test_settings)
+        queue_service = deps.queue_service()
+        order_service = deps.order_service()
+        order_pipeline_service = deps.order_pipeline_service()
 
         order_id = "ord_123"
 

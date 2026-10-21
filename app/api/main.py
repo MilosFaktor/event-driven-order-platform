@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Header, HTTPException, Response
 
-from app.core.dependencies import app_dependencies as deps
+from app.core.config import settings
+from app.core.dependencies import AppDependencies
 from app.core.logging_config import configure_logging_api, get_logger
 from app.exceptions import InconsistentIdempotencyState
 from app.models.enums import WorkerProcessResultOutcome
@@ -9,6 +10,7 @@ from app.models.orders_request import CreateOrderRequest, CreateOrderResponse
 from app.workflows.create_order_workflow import CreateOrderResult
 
 app = FastAPI()
+deps = AppDependencies(settings=settings)
 
 order_service = deps.order_service()
 inventory_service = deps.inventory_service()

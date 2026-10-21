@@ -1,4 +1,5 @@
 from app.core.config import Settings
+from app.core.dependencies import AppDependencies
 from app.models.enums import (
     InventoryReservationStatus,
     InventorySaleStatus,
@@ -7,8 +8,6 @@ from app.models.enums import (
     OrderStatus,
     PaymentCaptureStatus,
 )
-from app.services.order_service import OrderService
-from app.workflows.order_pipeline_service import OrderPipelineService
 from tests.helpers import create_default_test_order, silent_storage_reset
 
 
@@ -21,13 +20,13 @@ def test_order_pipeline_service_happy_path():
             retry_base_delay_seconds=1,
             retry_backoff_multiplier=2,
         )
+        deps = AppDependencies(settings=settings)
 
+        order_pipeline = deps.order_pipeline_service()
+        order_service = deps.order_service()
         order_id = "ord_123"
 
-        order_service = OrderService()
         create_default_test_order(order_service, order_id)
-
-        order_pipeline = OrderPipelineService(settings=settings)
 
         processed_order = order_pipeline.process_order(order_id)
 

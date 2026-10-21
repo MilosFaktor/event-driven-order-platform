@@ -56,12 +56,14 @@ Belongs here:
 - ordering multiple business steps
 - coordinating services
 - deciding one use-case flow
+- receiving required collaborators through constructor injection
 - returning internal result dataclasses
 - saving workflow-level state
 
 Does not belong here:
 
 - FastAPI `Response` or `HTTPException`
+- constructing production service dependencies
 - raw JSON serialization
 - low-level storage mechanics
 

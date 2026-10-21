@@ -1,4 +1,5 @@
 from app.core.config import Settings
+from app.core.dependencies import AppDependencies
 from app.models.enums import (
     Currency,
     InventoryReservationStatus,
@@ -11,9 +12,6 @@ from app.models.enums import (
 )
 from app.models.inventory import Inventory, InventoryItem
 from app.models.order import Order, OrderItem
-from app.services.inventory_service import InventoryService
-from app.services.order_service import OrderService
-from app.workflows.order_pipeline_service import OrderPipelineService
 from tests.helpers import silent_storage_reset
 
 
@@ -29,13 +27,11 @@ def test_inventory_reservation_failure_fails_order_without_running_later_steps()
 
         order_id = "ord_123"
 
-        order_service = OrderService()
-        inventory_service = InventoryService()
-        pipeline = OrderPipelineService(
-            settings=settings,
-            order_service=order_service,
-            inventory_service=inventory_service,
-        )
+        deps = AppDependencies(settings=settings)
+
+        order_service = deps.order_service()
+        inventory_service = deps.inventory_service()
+        pipeline = deps.order_pipeline_service()
 
         inventory = {
             "SKU-001": InventoryItem(
@@ -97,13 +93,11 @@ def test_inventory_reservation_failure_does_not_partially_reserve_stock():
 
         order_id = "ord_123"
 
-        order_service = OrderService()
-        inventory_service = InventoryService()
-        pipeline = OrderPipelineService(
-            settings=settings,
-            order_service=order_service,
-            inventory_service=inventory_service,
-        )
+        deps = AppDependencies(settings=settings)
+
+        order_service = deps.order_service()
+        inventory_service = deps.inventory_service()
+        pipeline = deps.order_pipeline_service()
 
         inventory = {
             "SKU-001": InventoryItem(

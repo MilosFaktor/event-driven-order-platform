@@ -767,13 +767,67 @@ Why it mattered:
 The project now has enough tests that file organization affects understanding.
 The split is based on cognitive load, not abstract test taxonomy.
 
+## v0.8.4 - Layer Responsibility Documentation
+
+Goal: document what belongs in each application layer before continuing cleanup.
+
+Implemented in v0.8.4:
+
+```text
+- added docs/concepts/layer-responsibilities.md
+- documented API, workflow, service, repository, adapter, model, storage, and test responsibilities
+- documented what does not belong in each layer
+- refreshed the architecture summary and current test/retry direction
+```
+
+Why it mattered:
+
+The project now has a written boundary guide for deciding where new behavior
+belongs without relying only on the current folder structure.
+
+## v0.8.5 - Dependency Wiring Cleanup
+
+Goal: make runtime object construction and dependency ownership explicit.
+
+Implemented in v0.8.5:
+
+```text
+- moved AppDependencies construction into the API and worker entrypoints
+- removed the shared module-level dependency container
+- injected runtime Settings into each AppDependencies instance
+- made AppDependencies own the production service and workflow graph
+- injected OrderPipelineService collaborators through its constructor
+- made OrderPipelineService dependencies required
+- made CreateOrderWorkflow dependencies required
+- updated behavior tests to use entrypoint-style containers for normal wiring
+- kept direct construction where tests replace payment or notification behavior
+- kept the full pytest suite passing with 20 tests
+```
+
+Current construction direction:
+
+```text
+API / worker entrypoint
+-> AppDependencies(settings)
+-> workflows
+-> services
+-> repositories
+-> adapters
+-> json_storage
+```
+
+Why it mattered:
+
+Entrypoints now own their runtime dependency containers, while workflows declare
+the collaborators they require instead of silently constructing production
+services. Tests can still construct focused workflow graphs when substituting
+controlled failure behavior.
+
 ## Next Versions
 
 Current and planned next steps:
 
-- `v0.8.4` - layer responsibility documentation
-- dependency wiring cleanup
-- logger naming / observability polish
-- public README/docs polish
+- `v0.8.6` - logger naming / observability polish
+- `v0.8.7` - public README/docs polish
 - future AWS SQS / DLQ integration
 - `v1.0.0` - local Phase 1 MVP complete

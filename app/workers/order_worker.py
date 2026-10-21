@@ -1,13 +1,13 @@
 import time
 
 from app.core.config import settings
-from app.core.dependencies import app_dependencies as deps
+from app.core.dependencies import AppDependencies
 from app.core.logging_config import configure_logging_worker, get_logger
 
 configure_logging_worker()
 logger = get_logger("worker.runtime")
 
-
+deps = AppDependencies(settings=settings)
 worker_service = deps.worker_service()
 
 

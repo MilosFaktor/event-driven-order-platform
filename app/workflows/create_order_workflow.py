@@ -20,14 +20,14 @@ class CreateOrderResult:
 class CreateOrderWorkflow:
     def __init__(
         self,
-        order_service: OrderService | None = None,
-        idempotency_service: IdempotencyKeysService | None = None,
-        queue_service: ProcessingQueueService | None = None,
+        order_service: OrderService,
+        idempotency_service: IdempotencyKeysService,
+        queue_service: ProcessingQueueService,
     ):
 
-        self.order_service = order_service or OrderService()
-        self.idempotency_service = idempotency_service or IdempotencyKeysService()
-        self.queue_service = queue_service or ProcessingQueueService()
+        self.order_service = order_service
+        self.idempotency_service = idempotency_service
+        self.queue_service = queue_service
 
     def execute(self, request, idempotency_key) -> CreateOrderResult:
 
