@@ -1,4 +1,4 @@
-from app.core.config import settings
+from app.core.config import Settings
 from app.services.idempotency_service import IdempotencyKeysService
 from app.services.inventory_service import InventoryService
 from app.services.invoice_service import InvoiceService
@@ -12,7 +12,8 @@ from app.workflows.worker_service import WorkerService
 
 
 class AppDependencies:
-    def __init__(self):
+    def __init__(self, settings: Settings):
+        self.settings = settings
         self._idempotency_service = None
         self._inventory_service = None
         self._invoice_service = None
@@ -62,7 +63,7 @@ class AppDependencies:
     def worker_service(self) -> WorkerService:
         if self._worker_service is None:
             self._worker_service = WorkerService(
-                settings=settings,
+                settings=self.settings,
                 queue_service=self.queue_service(),
                 order_pipeline_service=self.order_pipeline_service(),
             )
@@ -70,10 +71,17 @@ class AppDependencies:
 
     def order_pipeline_service(self) -> OrderPipelineService:
         if self._order_pipeline_service is None:
-            self._order_pipeline_service = OrderPipelineService(settings=settings)
+            self._order_pipeline_service = OrderPipelineService(
+                settings=self.settings,
+                order_service=self.order_service(),
+                inventory_service=self.inventory_service(),
+                payment_service=self.payment_service(),
+                invoice_service=self.invoice_service(),
+                notification_service=self.notification_service(),
+            )
         return self._order_pipeline_service
 
-    def create_order_workflow(self):
+    def create_order_workflow(self) -> CreateOrderWorkflow:
         if self._create_order_workflow is None:
             self._create_order_workflow = CreateOrderWorkflow(
                 idempotency_service=self.idempotency_service(),
@@ -81,6 +89,3 @@ class AppDependencies:
                 queue_service=self.queue_service(),
             )
         return self._create_order_workflow
-
-
-app_dependencies = AppDependencies()
