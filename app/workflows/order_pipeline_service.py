@@ -130,9 +130,7 @@ class OrderPipelineService:
         try:
             self.inventory_service.finalize_inventory_sale(order)
         except Exception:  # catches everything here for now
-            logger.exception(
-                "inventory_sale_finalization_error order_id=%s", order_id
-            )
+            logger.exception("inventory_sale_finalization_error order_id=%s", order_id)
             self.fail_order(
                 order,
                 OrderFailureStep.FINALIZE_INVENTORY_SALE,
