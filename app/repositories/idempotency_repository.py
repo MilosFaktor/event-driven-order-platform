@@ -2,7 +2,7 @@ from app.adapters.json_idempotency_adapter import IdempotencyKeysAdapter
 from app.core.logging_config import get_logger
 from app.models.idempotency_keys import IdempotencyKeys
 
-logger = get_logger("idempotency_keys.repo")
+logger = get_logger("idempotency.repo")
 
 
 class IdempotencyKeysRepository:

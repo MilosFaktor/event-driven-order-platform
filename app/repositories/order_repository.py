@@ -23,9 +23,9 @@ class OrderRepository:
         order = orders.root.get(order_id)
 
         if order is None:
-            logger.warning("order_not_found order_id=%s", order_id)
+            logger.debug("order_not_found order_id=%s", order_id)
         else:
-            logger.info(
+            logger.debug(
                 "order_loaded order_id=%s status=%s",
                 order_id,
                 order.status,

@@ -84,7 +84,6 @@ class OrderPipelineService:
             )
             self.order_service.save_order(order)
             self.order_service.log_order_state(order)
-            logger.warning("inventory_reservation_failed order_id=%s", order_id)
             return order
 
         self.order_service.save_order(order)
@@ -103,7 +102,6 @@ class OrderPipelineService:
             self.payment_service.capture_payment_mock(order)
 
         except PaymentCaptureError:
-            logger.warning("payment_capture_failed order_id=%s", order_id)
             self.fail_order(
                 order, OrderFailureStep.CAPTURE_PAYMENT, "Payment capture failed"
             )
@@ -132,6 +130,7 @@ class OrderPipelineService:
         try:
             self.inventory_service.finalize_inventory_sale(order)
         except Exception:  # catches everything here for now
+            logger.exception("inventory_sale_finalization_error order_id=%s", order_id)
             self.fail_order(
                 order,
                 OrderFailureStep.FINALIZE_INVENTORY_SALE,
@@ -139,7 +138,6 @@ class OrderPipelineService:
             )
             self.order_service.save_order(order)
             self.order_service.log_order_state(order)
-            logger.warning("inventory_sale_finalization_failed order_id=%s", order_id)
             return order
 
         self.order_service.save_order(order)
@@ -156,12 +154,12 @@ class OrderPipelineService:
         try:
             self.invoice_service.create_invoice(order)
         except Exception:  # catches everything here for now
+            logger.exception("invoice_creation_error order_id=%s", order_id)
             self.fail_order(
                 order, OrderFailureStep.CREATE_INVOICE, "Invoice creation failed"
             )
             self.order_service.save_order(order)
             self.order_service.log_order_state(order)
-            logger.warning("invoice_creation_failed order_id=%s", order_id)
             return order
 
         self.order_service.save_order(order)
@@ -185,8 +183,6 @@ class OrderPipelineService:
 
             self.order_service.save_order(order)
             self.order_service.log_order_state(order)
-
-            logger.warning("notification_send_failed order_id=%s", order_id)
             return order
 
         self.order_service.save_order(order)

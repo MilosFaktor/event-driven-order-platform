@@ -19,5 +19,5 @@ class PaymentService:
     def failed_capture_payment_mock(self, order: Order) -> None:
         # payment mock
         order.steps.capture_payment = PaymentCaptureStatus.FAILED
-        logger.info("payment_capture_failed order_id=%s", order.order_id)
+        logger.warning("payment_capture_failed order_id=%s", order.order_id)
         raise PaymentCaptureError(f"Payment capture failed for order {order.order_id}")

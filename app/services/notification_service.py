@@ -22,7 +22,7 @@ class NotificationService:
     def failed_send_notification_mock(self, order: Order) -> None:
         # notification mock
         order.steps.send_notification = NotificationSendStatus.FAILED
-        logger.info(
+        logger.warning(
             "notification_send_failed order_id=%s",
             order.order_id,
         )

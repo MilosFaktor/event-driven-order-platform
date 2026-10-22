@@ -1,4 +1,5 @@
 from app.core.logging_config import get_logger
+from app.models.enums import InvoiceCreationStatus
 from app.models.invoices import Invoice, InvoiceItem, Invoices
 from app.models.order import Order
 from app.repositories.inventory_repository import InventoryRepository
@@ -17,7 +18,7 @@ class InvoiceService:
         self.invoice_repo = invoice_repo or InvoiceRepository()
 
     def mark_invoice_created(self, order):
-        order.steps.create_invoice = "CREATED"
+        order.steps.create_invoice = InvoiceCreationStatus.CREATED
         logger.debug("order_invoice_step_updated order_id=%s", order.order_id)
 
     def create_invoice_items_snapshot(self, order: Order) -> list[InvoiceItem]:
@@ -52,7 +53,7 @@ class InvoiceService:
             customer_id=order.customer_id,
             items=invoice_items,
             currency=order.currency,
-            status="CREATED",
+            status=InvoiceCreationStatus.CREATED,
         )
 
         self.invoice_repo.save_invoices(invoices)
