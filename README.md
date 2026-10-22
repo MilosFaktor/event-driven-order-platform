@@ -18,9 +18,9 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current completed version: `v0.8.5`
+Current completed version: `v0.8.6`
 
-Next planned work: `v0.8.6` logger naming and observability polish.
+Next planned work: `v0.8.7` public documentation and local MVP presentation polish.
 
 The current local version includes:
 
@@ -96,16 +96,18 @@ Worker
 Logging is intentionally local and simple for now:
 
 ```text
-API               -> request/response flow
-worker.runtime    -> worker lifecycle
-worker.service    -> queue consumption / worker orchestration
-orders.service    -> order creation/idempotency helpers
-orders.pipeline   -> order processing workflow
-queue.service     -> queue mutations
-inventory.service -> inventory changes
-payment.service   -> mock payment events
-invoice.service   -> invoice creation
-notification.service -> notification creation
+api                      -> request/response flow
+worker.runtime           -> worker lifecycle
+worker.service           -> queue consumption / worker orchestration
+create_order.workflow    -> create-order orchestration
+order.pipeline           -> order processing workflow
+order.service            -> order operations
+idempotency.service      -> idempotency key lookup/storage
+processing_queue.service -> processing queue mutations
+inventory.service        -> inventory changes
+payment.service          -> mock payment events
+invoice.service          -> invoice creation
+notification.service     -> notification creation
 ```
 
 The current logging setup keeps separate named loggers for API, worker, and services even though they mostly share the same stdout formatting. This is intentional for now: the names make the flow easier to trace locally, and the formatter/handler setup can be simplified or changed later when the logging direction becomes clearer.
@@ -113,15 +115,16 @@ The current logging setup keeps separate named loggers for API, worker, and serv
 Current service split:
 
 ```text
-orders.service        -> order business operations through OrderRepository
-idempotency.service   -> idempotency key lookup/storage
-workflows.pipeline    -> processing workflow
-workflows.worker      -> worker orchestration
-queue.service         -> queue persistence
-inventory.service     -> inventory state changes through InventoryRepository
-payment.service       -> mock payment capture
-invoice.service       -> invoice records through InvoiceRepository
-notification.service  -> notification records through NotificationRepository
+order.service            -> order business operations through OrderRepository
+idempotency.service      -> idempotency key lookup/storage
+create_order.workflow    -> create-order orchestration
+order.pipeline           -> order processing workflow
+worker.service           -> worker orchestration
+processing_queue.service -> queue persistence
+inventory.service        -> inventory state changes through InventoryRepository
+payment.service          -> mock payment capture
+invoice.service          -> invoice records through InvoiceRepository
+notification.service     -> notification records through NotificationRepository
 ```
 
 Layer responsibility direction:

@@ -37,7 +37,7 @@ class WorkerService:
     def process_next_order(self) -> WorkerProcessResult:
         order_id = self.queue_service.get_first_queue_item()
         if order_id is None:
-            logger.warning("no_order_to_process")
+            logger.info("no_order_to_process")
             return WorkerProcessResult(
                 WorkerProcessResultOutcome.NO_WORK, None, "No work to do"
             )

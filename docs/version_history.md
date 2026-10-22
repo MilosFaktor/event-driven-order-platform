@@ -823,11 +823,38 @@ the collaborators they require instead of silently constructing production
 services. Tests can still construct focused workflow graphs when substituting
 controlled failure behavior.
 
+## v0.8.6 - Logger Naming And Observability Polish
+
+Goal: align logger names, event levels, and documentation without introducing a
+new logging system.
+
+Implemented in v0.8.6:
+
+```text
+- standardized repository logger names around singular domains
+- renamed notifications.repo to notification.repo
+- renamed idempotency_keys.repo to idempotency.repo
+- kept repository reads, writes, and expected misses at DEBUG
+- kept detailed state and item-level changes at DEBUG
+- kept completed business actions and workflow milestones at INFO
+- used WARNING for controlled failures and exhausted retries
+- retained exception tracebacks for unexpected invoice and inventory failures
+- removed duplicate workflow failure warnings
+- aligned the README and logging concept documentation with the implementation
+- centralized repeated test storage cleanup in a pytest fixture
+- kept Ruff and the full 20-test pytest suite passing
+```
+
+Why it mattered:
+
+The local logs now distinguish diagnostic detail from business milestones and
+failures consistently. The naming remains simple enough for local development
+while providing a clearer foundation for future CloudWatch logging.
+
 ## Next Versions
 
 Current and planned next steps:
 
-- `v0.8.6` - logger naming / observability polish
 - `v0.8.7` - public README/docs polish
 - future AWS SQS / DLQ integration
 - `v1.0.0` - local Phase 1 MVP complete

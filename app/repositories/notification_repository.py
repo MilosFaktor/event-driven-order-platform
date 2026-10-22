@@ -2,7 +2,7 @@ from app.adapters.json_notification_adapter import NotificationAdapter
 from app.core.logging_config import get_logger
 from app.models.notifications import Notifications
 
-logger = get_logger("notifications.repo")
+logger = get_logger("notification.repo")
 
 
 class NotificationRepository:

@@ -7,17 +7,25 @@ Logs are not business truth. The JSON files currently hold the state. Logs just 
 ## Current Logger Names
 
 ```text
-API                  request/response flow
-worker.runtime       standalone worker lifecycle
-worker.service       dequeue and process one order
-orders.service       order record helpers
-orders.pipeline      order processing workflow
-idempotency.service  idempotency key lookup/storage
-queue.service        queue mutations
-inventory.service    inventory changes
-payment.service      mock payment events
-invoice.service      invoice creation
-notification.service notification creation
+api                      request/response flow
+worker.runtime           standalone worker lifecycle
+worker.service           dequeue and process one order
+create_order.workflow    create-order orchestration
+order.pipeline           order processing workflow
+order.service            order operations
+idempotency.service      idempotency key lookup/storage
+processing_queue.service queue mutations
+inventory.service        inventory changes
+payment.service          mock payment events
+invoice.service          invoice creation
+notification.service     notification creation
+
+order.repo               order persistence
+idempotency.repo         idempotency key persistence
+processing_queue.repo    queue persistence
+inventory.repo           inventory persistence
+invoice.repo             invoice persistence
+notification.repo        notification persistence
 ```
 
 ## Current Style
@@ -41,12 +49,19 @@ WARNING  expected but problematic situations
 ERROR    unexpected or inconsistent failures
 ```
 
+The layer does not determine the level. Repository events are normally `DEBUG`,
+but service and workflow events can use any level appropriate to the event.
+
 ## Rules For Now
 
 - Important order-flow logs should include `order_id`.
 - Do not log raw idempotency keys.
 - Do not log secrets.
 - Keep repeated internal details at `DEBUG`.
+- Keep repository reads, writes, and expected misses at `DEBUG`.
+- Keep completed business actions and workflow milestones at `INFO`.
+- Use `WARNING` for controlled failures and exhausted retries.
+- Use `ERROR` when an unexpected exception or inconsistent state needs attention.
 - Use logger names to show which part of the app produced the event.
 
 ## Future Direction

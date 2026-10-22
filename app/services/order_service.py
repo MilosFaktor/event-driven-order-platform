@@ -51,7 +51,7 @@ class OrderService:
         while True:
             order_id = f"ord_{uuid4().hex[:8]}"
             if order_id not in orders.root:
-                logger.info("order_id_generated order_id=%s", order_id)
+                logger.debug("order_id_generated order_id=%s", order_id)
                 return order_id
 
     def order_is_completed(self, order: Order) -> bool:
