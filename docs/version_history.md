@@ -903,6 +903,8 @@ managed AWS services.
 
 ## Next Phase
 
-The next phase is AWS/platform work using API Gateway, Lambda, DynamoDB,
-SQS/DLQ, CloudWatch, IAM, CI/CD, and infrastructure as code. No AWS release
-version has been assigned yet.
+The next phase starts at `v1.1.0` with a Terraform foundation, IAM, a test
+Lambda, deployment packaging, and CloudWatch Logs. Later releases incrementally
+introduce DynamoDB, SQS/DLQ, API Gateway, the API and worker Lambdas, and the
+remaining AWS-backed adapters. The complete plan is documented in
+[roadmap.md](roadmap.md).

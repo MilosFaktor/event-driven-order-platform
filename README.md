@@ -20,7 +20,8 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 Current completed version: `v1.0.0`
 
-Next planned work: begin the AWS/platform phase.
+Next planned release: `v1.1.0` — Terraform foundation, IAM, a test Lambda,
+deployment packaging, and CloudWatch Logs.
 
 The current local version includes:
 
@@ -28,9 +29,9 @@ The current local version includes:
 - idempotent order creation with `Idempotency-Key`
 - local processing queue
 - manual worker processing endpoint
-- standalone worker process experiment
+- standalone worker runtime
 - JSON-backed local persistence
-- structured local logging for API, worker, queue, and pipeline services
+- semantic key-value text logging for API, worker, queue, and pipeline services
 - environment-based settings with safe defaults in `.env.example`
 - workflow orchestration for worker and order processing
 - cleaner service boundaries for order storage, idempotency, queue, inventory, invoices, notifications, and payment
@@ -177,6 +178,7 @@ data/notifications.json
 
 Architecture and concept docs:
 
+- [Project roadmap](docs/roadmap.md)
 - [Architecture](docs/architecture.md)
 - [Order processing flow](docs/concepts/order-processing-flow.md)
 - [Worker model](docs/concepts/worker-model.md)

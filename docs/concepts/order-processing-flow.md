@@ -30,7 +30,7 @@ app/api/main.py                       API layer
 app/services/order_service.py          order records
 app/services/idempotency_service.py    idempotency keys
 app/services/queue_service.py          queue storage
-app/workflows/worker_service.py        dequeue one order
+app/workflows/worker_service.py        queue decisions, retries, and outcomes
 app/workflows/order_pipeline_service.py processing workflow
 ```
 

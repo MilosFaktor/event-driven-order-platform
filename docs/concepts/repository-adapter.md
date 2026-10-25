@@ -38,7 +38,7 @@ order business logic
 
 ## Pydantic Object Boundary
 
-The app is moving toward keeping validated Pydantic objects at service and storage boundaries.
+The app keeps validated Pydantic objects at service and storage boundaries.
 
 That means the adapter owns conversion at the storage edge:
 
@@ -73,4 +73,6 @@ For now:
 - retry/backoff exists only for the current local payment and notification flow
 - SQS redelivery and DLQ behavior remain AWS-phase work
 
-The goal is to keep business behavior separated from storage mechanics while adding reliability features one slice at a time.
+The established local boundary keeps business behavior separated from storage
+mechanics. The AWS phase should preserve that boundary while replacing JSON
+adapters one infrastructure slice at a time.

@@ -23,7 +23,7 @@ This is useful for local debugging because one queued order can be processed on 
 Standalone worker process:
 
 ```text
-make run-worker
+make worker
 ```
 
 This is closer to the future AWS worker model.
@@ -32,9 +32,10 @@ This is closer to the future AWS worker model.
 
 ```text
 queue contains order_id
--> worker dequeues order_id
--> worker calls order_pipeline_service.process_order(order_id)
--> pipeline updates order state
+-> worker peeks at the first order_id
+-> worker calls OrderPipelineService for one processing attempt
+-> worker retries configured failures with local blocking backoff
+-> worker dequeues after success, stale work, non-retryable failure, or exhaustion
 ```
 
 ## Main Realization
@@ -48,28 +49,26 @@ That is why the local project uses JSON persistence for shared state.
 ## Main Files
 
 ```text
-app/services/worker_service.py          dequeue one order and call pipeline
+app/workflows/worker_service.py         queue decisions, retries, and outcomes
 app/workers/order_worker.py             standalone worker runtime loop
 app/services/queue_service.py           queue storage
-app/services/order_pipeline_service.py  order processing workflow
+app/workflows/order_pipeline_service.py one pipeline attempt and checkpoints
 ```
 
 ## Rules For Now
 
-- `worker_service.py` should stay focused on dequeueing one order and calling the pipeline.
+- `worker_service.py` should own queue decisions, retries, backoff, and terminal outcomes.
+- `order_pipeline_service.py` should own one processing attempt and ordered business steps.
 - `order_worker.py` should own the standalone worker loop.
 - The worker should not create orders.
 - The worker should not know API request details.
 - Empty queue handling should be clean and explicit.
 
-## Future Work
+## Current Reliability Boundary
 
 ```text
-stale queue handling
-retry attempts
-backoff
-DLQ
-queue message model instead of plain order_id
+implemented locally: stale-message handling, retry attempts, blocking backoff
+deferred to AWS: visibility timeout, redelivery, DLQ, message metadata
 ```
 
 ## AWS Mapping

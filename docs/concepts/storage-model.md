@@ -32,34 +32,27 @@ When the API and worker run separately, they do not share memory. That is why th
 ## Current Ownership
 
 ```text
-order_service.py        orders
-idempotency_service.py  idempotency keys
-queue_service.py        processing queue
-inventory_service.py    inventory
-invoice_service.py      invoices
-notification_service.py notifications
+business service
+-> domain repository
+-> JSON adapter
+-> json_storage
+-> data/*.json
 ```
 
-## Future Direction
+This boundary is implemented for orders, idempotency keys, the processing
+queue, inventory, invoices, and notifications.
 
-The future direction is:
+## Current Direction
+
+Business behavior works with validated Pydantic objects while adapters own
+serialization and validation at the JSON storage edge:
 
 ```text
-business logic
--> repository
--> adapter
--> storage backend
+service -> repository -> JSON adapter -> JSON storage
 ```
 
-But this should be added gradually.
-
-First useful slice is probably orders:
-
-```text
-Order service -> Order repository -> JSON adapter
-```
-
-Later backends could be:
+The AWS phase can replace JSON adapters with infrastructure-specific adapters
+without moving storage mechanics back into services. Candidate backends are:
 
 ```text
 in-memory
@@ -70,16 +63,18 @@ DynamoDB
 ## Rules For Now
 
 - Do not go back to shared in-memory state for API + worker mode.
-- Do not rewrite all storage at once.
-- Prove repository/adapter on one slice first.
+- Keep business decisions out of repositories and adapters.
+- Replace infrastructure one domain slice at a time during AWS migration.
 - Keep JSON storage as a local learning/persistence layer, not production storage.
 
 ## AWS Mapping
 
 ```text
-orders JSON       -> DynamoDB
-idempotency JSON  -> DynamoDB
-queue JSON        -> SQS
-inventory JSON    -> DynamoDB
-stdout logs       -> CloudWatch
+orders JSON        -> DynamoDB
+idempotency JSON   -> DynamoDB
+queue JSON         -> SQS
+inventory JSON     -> DynamoDB
+invoices JSON      -> S3 / DynamoDB metadata
+notifications JSON -> SNS / notification tracking
+stdout logs        -> CloudWatch
 ```

@@ -105,9 +105,9 @@ The goal is for business logic to work with validated Pydantic objects while ada
 | Notification records | SNS / notification tracking |
 | stdout logs | CloudWatch Logs |
 
-## Direction
+## Completed Local Direction
 
-The current direction is:
+The local MVP progressed through:
 
 ```text
 contracts
@@ -116,8 +116,11 @@ contracts
 -> retry / backoff
 -> behavior-focused tests
 -> cleanup / layer responsibility documentation
--> AWS infrastructure
 ```
+
+The current direction is the AWS serverless MVP. Terraform begins with the
+first AWS slice, while the local workflow and dependency boundaries remain the
+baseline for Lambda and managed-service adapters.
 
 ## Related Docs
 
