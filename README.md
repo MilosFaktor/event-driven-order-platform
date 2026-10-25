@@ -18,9 +18,9 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current completed version: `v0.8.6`
+Current completed version: `v0.8.7`
 
-Next planned work: `v0.8.7` public documentation and local MVP presentation polish.
+Next planned work: mark the local MVP as `v1.0.0`, then begin the AWS/platform phase.
 
 The current local version includes:
 
@@ -186,6 +186,7 @@ Architecture and concept docs:
 - [Failure handling](docs/concepts/failure-handling.md)
 - [Repository / adapter](docs/concepts/repository-adapter.md)
 - [Layer responsibilities](docs/concepts/layer-responsibilities.md)
+- [Known limitations](docs/known-limitations.md)
 
 ## Screenshots
 
@@ -316,7 +317,10 @@ GitHub Actions currently runs Ruff checks and pytest, and the `main` branch is p
 
 Planned next versions:
 
-- `v0.8.0` - create-order workflow cleanup / thin API boundary
-- responsibility and layer documentation polish
-- future AWS SQS / DLQ integration
-- `v1.0.0` - local Phase 1 MVP complete
+- `v1.0.0` - mark the local Phase 1 MVP complete
+- AWS/platform phase - API Gateway, Lambda, DynamoDB, SQS/DLQ, and CloudWatch
+
+The local implementation is now frozen unless an AWS integration problem, a
+failing test, or demonstrated incorrect behavior requires a change. See
+[Known limitations](docs/known-limitations.md) for the boundaries intentionally
+left for the AWS phase.

@@ -16,6 +16,10 @@ Current settings:
 ENVIRONMENT
 LOG_LEVEL
 QUEUE_INTERVAL
+MAX_PROCESSING_ATTEMPTS
+RETRY_BASE_DELAY_SECONDS
+RETRY_BACKOFF_MULTIPLIER
+RETRYABLE_FAILURE_STEPS
 ```
 
 Env files:
@@ -23,10 +27,12 @@ Env files:
 ```text
 .env.example  committed safe defaults
 .env.local    private local override
+.env.dev      private development override
 .env.prod     private prod-like override
 ```
 
-The app defaults to `.env.example`, so a fresh clone can run.
+The `MODE` environment variable selects the env file. The app defaults to
+`.env.example`, so a fresh clone can run.
 
 ## Rules For Now
 
@@ -42,18 +48,26 @@ The app defaults to `.env.example`, so a fresh clone can run.
 ENVIRONMENT=local
 LOG_LEVEL=INFO
 QUEUE_INTERVAL=1
+MAX_PROCESSING_ATTEMPTS=4
+RETRY_BASE_DELAY_SECONDS=1
+RETRY_BACKOFF_MULTIPLIER=2
 ```
 
 For local debugging, `LOG_LEVEL=DEBUG` is useful.
 
-## Future Direction
-
-Retry/DLQ work will probably add:
+`RETRYABLE_FAILURE_STEPS` is not present in `.env.example`, so the application
+uses its code default:
 
 ```text
-MAX_RETRIES
-RETRY_DELAY_SECONDS
+CAPTURE_PAYMENT
+SEND_NOTIFICATION
 ```
+
+These are the only retryable steps covered by the current behavior tests. The
+settings type accepts other valid `OrderFailureStep` values, but the local app
+does not claim that those steps are safe to retry.
+
+## Future Direction
 
 Storage abstraction may later add:
 
@@ -61,4 +75,7 @@ Storage abstraction may later add:
 STORAGE_BACKEND
 ```
 
-For AWS, these settings map to Lambda environment variables.
+For AWS, appropriate runtime settings can map to Lambda environment variables.
+Retry timing, redelivery, and exhausted-message handling should move to SQS
+visibility timeout and redrive policy rather than copying the local blocking
+retry loop directly.

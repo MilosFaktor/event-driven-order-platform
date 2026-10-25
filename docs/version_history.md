@@ -356,9 +356,11 @@ docs/concepts/failure-handling.md
 Diagram artifacts:
 
 ```text
-docs/diagrams/local-order-pipeline.drawio
 docs/screenshots/00-diagram.png
 ```
+
+The original editable Draw.io source was removed during the v0.8.7
+documentation closeout. The maintained public diagram is the exported PNG.
 
 ## v0.5.9 - Contract Models Foundation
 
@@ -851,10 +853,35 @@ The local logs now distinguish diagnostic detail from business milestones and
 failures consistently. The naming remains simple enough for local development
 while providing a clearer foundation for future CloudWatch logging.
 
+## v0.8.7 - Local MVP Documentation Closeout
+
+Goal: make the current local system, its limitations, and its AWS transition
+clear before freezing local architecture work.
+
+Implemented in v0.8.7:
+
+```text
+- added one authoritative known-limitations document
+- documented JSON concurrency and transaction limitations
+- documented the difference between the local queue and SQS delivery semantics
+- documented local retry scope and blocking backoff behavior
+- documented remaining checkpoint, exception, and compensation limitations
+- corrected configuration docs to include the existing retry settings
+- corrected repository/adapter docs that described retry/backoff as future work
+- clarified that DLQ behavior belongs to the AWS SQS redrive phase
+- replaced the stale Draw.io source with the maintained exported PNG
+- refreshed README status, documentation links, roadmap, and AWS transition
+```
+
+Why it mattered:
+
+The local MVP now has an explicit stopping boundary. Future local changes should
+be driven by AWS integration, failing tests, or demonstrated incorrect behavior
+rather than open-ended architecture polishing.
+
 ## Next Versions
 
 Current and planned next steps:
 
-- `v0.8.7` - public README/docs polish
-- future AWS SQS / DLQ integration
 - `v1.0.0` - local Phase 1 MVP complete
+- AWS/platform phase - API Gateway, Lambda, DynamoDB, SQS/DLQ, and CloudWatch

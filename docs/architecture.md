@@ -72,7 +72,8 @@ The project has established:
 
 The project does not yet have AWS infrastructure. Local DLQ simulation is also
 intentionally skipped for now because SQS redrive policy should own DLQ movement
-later.
+later. The remaining local boundaries are documented in
+`docs/known-limitations.md`.
 
 ## Repository / Adapter Direction
 
@@ -130,3 +131,4 @@ For detailed concepts, see:
 - `docs/concepts/failure-handling.md`
 - `docs/concepts/repository-adapter.md`
 - `docs/concepts/layer-responsibilities.md`
+- `docs/known-limitations.md`
