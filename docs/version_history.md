@@ -879,9 +879,30 @@ The local MVP now has an explicit stopping boundary. Future local changes should
 be driven by AWS integration, failing tests, or demonstrated incorrect behavior
 rather than open-ended architecture polishing.
 
-## Next Versions
+## v1.0.0 - Local MVP Complete
 
-Current and planned next steps:
+Goal: formally complete the local Phase 1 MVP and establish a stable starting
+point for AWS deployment work.
 
-- `v1.0.0` - local Phase 1 MVP complete
-- AWS/platform phase - API Gateway, Lambda, DynamoDB, SQS/DLQ, and CloudWatch
+Released in v1.0.0:
+
+```text
+- completed the local order API and asynchronous worker flow
+- retained explicit dependency wiring for the API and worker entrypoints
+- retained checkpoint-aware retries, backoff, and narrow compensation behavior
+- documented the local system's reliability and infrastructure limitations
+- finalized the public local-MVP status and version history
+- promoted project metadata from v0.8.7 to v1.0.0
+```
+
+Why it mattered:
+
+This release closes the local implementation phase. It provides a documented,
+tested baseline for learning how the same responsibilities change when moved to
+managed AWS services.
+
+## Next Phase
+
+The next phase is AWS/platform work using API Gateway, Lambda, DynamoDB,
+SQS/DLQ, CloudWatch, IAM, CI/CD, and infrastructure as code. No AWS release
+version has been assigned yet.

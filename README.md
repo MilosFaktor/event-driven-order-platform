@@ -18,9 +18,9 @@ The project progression is documented in [docs/version_history.md](docs/version_
 
 ## Current Status
 
-Current completed version: `v0.8.7`
+Current completed version: `v1.0.0`
 
-Next planned work: mark the local MVP as `v1.0.0`, then begin the AWS/platform phase.
+Next planned work: begin the AWS/platform phase.
 
 The current local version includes:
 
@@ -313,14 +313,12 @@ make tests
 
 GitHub Actions currently runs Ruff checks and pytest, and the `main` branch is protected so required checks must pass before merging.
 
-## Roadmap
+## Next Phase
 
-Planned next versions:
+The next phase moves the system to AWS using API Gateway, Lambda, DynamoDB,
+SQS/DLQ, CloudWatch, and infrastructure as code.
 
-- `v1.0.0` - mark the local Phase 1 MVP complete
-- AWS/platform phase - API Gateway, Lambda, DynamoDB, SQS/DLQ, and CloudWatch
-
-The local implementation is now frozen unless an AWS integration problem, a
+The `v1.0.0` local implementation is frozen unless an AWS integration problem, a
 failing test, or demonstrated incorrect behavior requires a change. See
 [Known limitations](docs/known-limitations.md) for the boundaries intentionally
 left for the AWS phase.
