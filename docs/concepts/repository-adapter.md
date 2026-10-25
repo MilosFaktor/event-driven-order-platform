@@ -70,6 +70,7 @@ For now:
 - dependency wiring is intentionally lightweight
 - failure handling is implemented for the current local workflow slice
 - stale queue messages are discarded as non-order workflow failures
-- retry/backoff and DLQ behavior remain later work
+- retry/backoff exists only for the current local payment and notification flow
+- SQS redelivery and DLQ behavior remain AWS-phase work
 
 The goal is to keep business behavior separated from storage mechanics while adding reliability features one slice at a time.
